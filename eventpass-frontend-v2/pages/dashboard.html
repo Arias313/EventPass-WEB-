@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#7c3aed" />
+  <link rel="apple-touch-icon" href="../icons/icon-192x192.png" />
+  <link rel="manifest" href="../manifest.json" />
+  <title>Dashboard — EventPass</title>
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <a href="../index.html" class="back-link">← EventPass</a>
+      <div id="connection-status" class="status-online">● En línea</div>
+    </div>
+  </header>
+
+  <main class="page-main" style="max-width:760px;">
+    <p class="page-eyebrow">Panel del evento</p>
+    <h1 class="page-title">Dashboard en vivo</h1>
+
+    <div class="dash-refresh"><span class="dot"></span> Actualizando en vivo</div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-registrados">0</div>
+        <p class="stat-label">Registrados</p>
+      </div>
+      <div class="stat-card accent-success">
+        <div class="stat-value" id="stat-confirmados">0</div>
+        <p class="stat-label">Check-in confirmado</p>
+      </div>
+      <div class="stat-card accent-warning">
+        <div class="stat-value" id="stat-pendientes">0</div>
+        <p class="stat-label">Pendientes por llegar</p>
+      </div>
+    </div>
+
+    <div class="capacity-bar"><div class="capacity-bar-fill" id="capacity-fill" style="width:0%"></div></div>
+    <div class="capacity-caption">
+      <span id="capacity-texto">0 / 0 del aforo</span>
+      <span id="capacity-porcentaje">0%</span>
+    </div>
+
+    <div class="panel">
+      <h3>Últimos check-ins</h3>
+      <table class="live-table">
+        <thead>
+          <tr><th>Asistente</th><th>Empresa</th><th>Hora</th></tr>
+        </thead>
+        <tbody id="tabla-checkins">
+          <tr class="empty-row"><td colspan="3">Aún no hay check-ins registrados.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h3>Tasa de confirmación</h3>
+      <p style="margin-bottom:0; color:var(--text-dim); font-size:.9rem;">
+        <span id="stat-tasa" style="font-family:var(--font-mono); color:var(--text); font-size:1.1rem; font-weight:600;">0%</span>
+        de los asistentes registrados ya hicieron check-in.
+      </p>
+    </div>
+
+    <div class="panel demo-reset-panel">
+      <h3>Datos de demostración</h3>
+      <p style="color:var(--text-dim); font-size:.9rem;">Vacía inscritos y check-ins locales para empezar una prueba desde cero. No cierra la sesión del organizador.</p>
+      <button type="button" id="btn-reset-local" class="btn-danger">Reiniciar datos locales</button>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <p>EventPass &copy; 2026 — Funciona offline gracias a PWA</p>
+  </footer>
+
+<!-- 1. Cargar primero la configuración global de la API -->
+  <script src="../js/config.js"></script>
+
+  <!-- 2. Cargar la lógica del estado offline, app y dashboard -->
+  <script src="../js/api-store.js"></script>
+  <script src="../js/app.js"></script>
+  <script src="../js/dashboard.js"></script>
+</body>
+</html>
