@@ -1,85 +1,198 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#7c3aed" />
-  <link rel="apple-touch-icon" href="../icons/icon-192x192.png" />
-  <link rel="manifest" href="../manifest.json" />
-  <title>Acceso administrador — EventPass</title>
-  <link rel="stylesheet" href="../css/main.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#020618">
+  <title>Iniciar sesión — EventPass</title>
+  <link rel="stylesheet" href="../css/main.css">
   <style>
-    .tabs { display: flex; gap: 4px; margin-bottom: 22px; background: var(--bg-raised); border-radius: var(--radius-sm); padding: 4px; }
-    .tab-btn { flex: 1; background: none; border: none; color: var(--text-dim); padding: 9px; border-radius: 6px; font-family: var(--font-body); font-weight: 600; font-size: .88rem; cursor: pointer; }
-    .tab-btn.is-active { background: var(--primary); color: #fff; }
-    .auth-form { display: none; }
-    .auth-form.is-active { display: block; }
-    .auth-error { display: none; background: rgba(248,113,113,.1); border: 1px solid var(--danger); color: var(--danger); padding: 10px 14px; border-radius: var(--radius-sm); font-size: .86rem; margin-bottom: 16px; }
+    /* Estilos enfocados en conversión (Minimalista) */
+    body {
+      background-color: var(--color-midnight-panel);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    
+    .auth-header {
+      margin-top: 60px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .auth-container {
+      width: 100%;
+      max-width: 440px;
+      background: var(--color-deep-slate);
+      padding: 40px 32px;
+      border: 1px solid var(--color-steel-outline);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      margin-bottom: 60px;
+      box-sizing: border-box;
+    }
+
+    .auth-title {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .auth-title h1 {
+      font-size: 1.8rem;
+      color: var(--color-signal-white);
+      margin: 0 0 12px 0;
+    }
+
+    .auth-title p {
+      font-size: 0.95rem;
+      color: var(--color-signal-white);
+      margin: 0;
+    }
+    
+    .auth-title a {
+      color: var(--color-nuxt-signal);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .auth-title a:hover {
+      text-decoration: underline;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px;
+      background: var(--color-midnight-panel);
+      border: 1px solid var(--color-steel-outline);
+      border-radius: 8px;
+      color: var(--color-signal-white);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus {
+      border-color: var(--color-nuxt-signal);
+    }
+
+    .auth-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 0.85rem;
+    }
+
+    .auth-options label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--color-muted-fog);
+      cursor: pointer;
+    }
+
+    .auth-options a {
+      color: var(--color-nuxt-signal);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--color-nuxt-signal);
+      color: #000;
+      border: none;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn-submit:hover {
+      opacity: 0.9;
+    }
+    
+    .err {
+      color: #ff4d4d;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-bottom: 15px;
+      min-height: 20px;
+    }
   </style>
 </head>
 <body>
 
-  <header class="app-header">
-    <div class="header-inner">
-      <a href="../index.html" class="back-link">← EventPass</a>
-      <div id="connection-status" class="status-online">● En línea</div>
-    </div>
+  <!-- Logo Centrado -->
+  <header class="auth-header">
+    <a href="../index.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px;">
+      <span style="color: var(--color-nuxt-signal); font-size: 2rem;">◈</span>
+      <span style="color: var(--color-signal-white); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px;">EventPass</span>
+    </a>
   </header>
 
-  <main class="page-main" style="max-width:440px;">
-    <p class="page-eyebrow">Panel de administración</p>
-    <h1 class="page-title">Acceso de organizadores</h1>
-    <p class="page-lead">Inicia sesión para crear y administrar tus eventos.</p>
-
-    <div class="tabs">
-      <button class="tab-btn is-active" id="tab-login">Iniciar sesión</button>
-      <button class="tab-btn" id="tab-registro">Crear cuenta</button>
+  <main class="auth-container">
+    
+    <div class="auth-title">
+      <h1>Hola de nuevo</h1>
+      <p>¿Aún no tienes cuenta? <a href="registro-admin.html">Regístrate</a></p>
     </div>
 
-    <p class="auth-error" id="auth-error"></p>
+    <form id="f" novalidate>
+      <div class="form-group">
+        <input id="u" type="email" class="form-input" placeholder="Correo del trabajo" autocomplete="username" required>
+      </div>
+      
+      <div class="form-group">
+        <input id="p" type="password" class="form-input" placeholder="Contraseña" autocomplete="current-password" required>
+      </div>
 
-    <!-- Login -->
-    <form id="form-login" class="form-card auth-form is-active">
-      <div class="field">
-        <label for="login-email">Correo electrónico</label>
-        <input type="email" id="login-email" autocomplete="email" required />
+      <div class="auth-options">
+        <label>
+          <input type="checkbox"> Mantener la sesión iniciada
+        </label>
+        <a href="#" onclick="alert('Funcionalidad de recuperación en construcción para la V2'); return false;">¿Has olvidado tu contraseña?</a>
       </div>
-      <div class="field">
-        <label for="login-password">Contraseña</label>
-        <input type="password" id="login-password" autocomplete="current-password" required />
-      </div>
-      <button type="submit" class="btn-primary" id="btn-login">Entrar</button>
-    </form>
 
-    <!-- Registro -->
-    <form id="form-registro-admin" class="form-card auth-form">
-      <div class="field">
-        <label for="reg-nombre">Nombre</label>
-        <input type="text" id="reg-nombre" autocomplete="name" required />
-      </div>
-      <div class="field">
-        <label for="reg-email">Correo electrónico</label>
-        <input type="email" id="reg-email" autocomplete="email" required />
-      </div>
-      <div class="field">
-        <label for="reg-password">Contraseña</label>
-        <input type="password" id="reg-password" autocomplete="new-password" minlength="6" required />
-        <p class="field-error" style="display:block; color:var(--text-faint);">Mínimo 6 caracteres.</p>
-      </div>
-      <button type="submit" class="btn-primary" id="btn-registro-admin">Crear cuenta</button>
+      <div class="err" id="e"></div>
+      
+      <button type="submit" class="btn-submit">INICIAR SESIÓN</button>
     </form>
   </main>
 
-  <footer class="app-footer">
-    <p>EventPass &copy; 2026 — Panel de administración</p>
-  </footer>
-
-<!-- 1. Configuración de API (Primero) -->
   <script src="../js/config.js"></script>
+<script>
+    document.getElementById("f").onsubmit = e => {
+      e.preventDefault();
+      const inputEmail = document.getElementById("u").value.trim();
+      const inputPass = document.getElementById("p").value;
+      
+      // 1. Buscamos si hay una cuenta recién registrada en el navegador
+      const cuentaGuardada = JSON.parse(localStorage.getItem('ep_cuenta_creada'));
+      
+      // 2. Traemos al admin por defecto que tienes en config.js
+      const configAdmin = EP_CONFIG.ADMIN; 
 
-  <!-- 2. Scripts del sistema -->
-  <script src="../js/api-store.js"></script>
-  <script src="../js/app.js"></script>
-  <script src="../js/auth.js"></script>
+      // 3. Validamos: ¿Es la cuenta recién creada? ¿O es el admin por defecto?
+      if ((cuentaGuardada && inputEmail === cuentaGuardada.email && inputPass === cuentaGuardada.pass) || (inputEmail === configAdmin.email && inputPass === configAdmin.password)) {
+        sessionStorage.setItem("ep_admin", "1");
+        window.location.href = "../index-administrador.html";
+      } else {
+        document.getElementById("e").textContent = "Correo o contraseña incorrectos.";
+      }
+    };
+  </script>
 </body>
 </html>

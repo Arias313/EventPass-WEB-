@@ -1,85 +1,49 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#7c3aed" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="EventPass" />
-  <link rel="apple-touch-icon" href="../icons/icon-192x192.png" />
-  <link rel="manifest" href="../manifest.json" />
-
-  <title>Inscripción — EventPass</title>
-  <link rel="stylesheet" href="../css/main.css" />
-</head>
-<body>
-
-  <header class="app-header">
-    <div class="header-inner">
-      <a href="../index.html" class="back-link" style="text-decoration: none; color: inherit;">
-        <span class="logo-icon">◈</span>
-        <span class="logo-text">EventPass</span>
-      </a>
-      <div id="connection-status" class="status-online">● En línea</div>
-    </div>
-  </header>
-
-  <main class="page-container" style="max-width: 600px; margin: 0 auto; padding: 1.5rem;">
-    <a href="../index.html" style="font-size: 0.85rem; color: var(--text-muted, #94a3b8); text-decoration: none; display: inline-block; margin-bottom: 1rem;">← Volver al inicio</a>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#020618"><link rel="manifest" href="../manifest.json">
+<title>Registro — EventPass</title><link rel="stylesheet" href="../css/main.css">
+</head><body>
+<header class="app-header">
+  <div class="header-inner" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
+    <!-- Logo funciona como botón de regreso al inicio -->
+    <a href="../index.html" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">EventPass</span>
+    </a>
     
-    <h1 class="page-title" style="margin-bottom: 1.5rem;">Inscripción <span>al evento</span></h1>
-
-    <!-- Formulario de Registro (con action="#" y onsubmit="return false;") -->
-    <form id="form-registro" action="#" onsubmit="return false;" class="card" novalidate style="display: flex; flex-direction: column; gap: 1.25rem;">
-      <div class="form-group" id="campo-nombre">
-        <label for="nombre" style="display: block; margin-bottom: 0.5rem;">Nombre Completo *</label>
-        <input type="text" id="nombre" name="nombre" placeholder="Ej. Ana García" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff;" />
-      </div>
-
-      <div class="form-group" id="campo-email">
-        <label for="email" style="display: block; margin-bottom: 0.5rem;">Correo Electrónico *</label>
-        <input type="email" id="email" name="email" placeholder="ana@ejemplo.com" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff;" />
-      </div>
-
-      <div class="form-group">
-        <label for="empresa" style="display: block; margin-bottom: 0.5rem;">Empresa / Organización (Opcional)</label>
-        <input type="text" id="empresa" name="empresa" placeholder="Ej. Tech Corp" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff;" />
-      </div>
-
-      <!-- Se especifica type="button" en lugar de submit si se maneja 100% con evento click en JS -->
-      <button type="submit" id="btn-registrar" class="btn-primary" style="padding: 0.85rem; border-radius: 8px; background: #7c3aed; color: #fff; font-weight: 600; border: none; cursor: pointer;">Generar mi pase</button>
-    </form>
-
-    <!-- Resultado: Pase Generado (Oculto al inicio) -->
-    <div id="resultado-registro" class="card" style="display: none; text-align: center; padding: 2rem;">
-      <div style="margin-bottom: 1rem;">
-        <span style="background: rgba(124, 58, 237, 0.2); color: #a78bfa; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: 600;">✦ PASE OFICIAL</span>
-        <h2 id="ticket-nombre" style="margin-top: 0.75rem; font-size: 1.5rem;">Nombre Asistente</h2>
-        <p id="ticket-empresa" style="color: var(--text-muted, #94a3b8);">Empresa</p>
-      </div>
-      
-      <div style="background: #fff; padding: 1rem; border-radius: 12px; display: inline-block; margin: 1rem 0;">
-        <canvas id="ticket-qr-canvas" style="display: block;"></canvas>
-      </div>
-
-      <p style="font-family: monospace; color: var(--text-muted, #94a3b8); margin-bottom: 1.5rem;">
-        Código: <span id="ticket-codigo" style="color: #fff; font-weight: bold;">EP-XXXXXX</span>
-      </p>
-
-      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <button id="btn-descargar" class="btn-secondary" style="padding: 0.75rem; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); cursor: pointer;">⬇ Descargar pase (PNG)</button>
-        <button id="btn-otro" style="background: transparent; border: none; color: var(--text-muted, #94a3b8); cursor: pointer; text-decoration: underline;">Registrar a otra persona</button>
-      </div>
+    <div id="connection-status" class="status-online" style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+      ● En línea
     </div>
-  </main>
+  </div>
+</header>
 
-  <!-- Scripts necesarios cargados en orden -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <script src="../js/config.js"></script>
-  <script src="../js/api-store.js"></script>
-  <script src="../js/app.js"></script>
-  <script src="../js/qr-generator.js"></script>
-  <script src="../js/registro.js"></script>
-</body>
-</html>
+<main class="wrap narrow"><div class="panel" id="box"></div></main>
+<script src="../js/config.js"></script><script src="../js/api-store.js"></script><script src="../js/app.js"></script>
+<script>
+const {esc,param}=EPUtil,box=document.getElementById("box"),id=param("evento"),ev=id&&EPStore.getEvento(id);
+if(!ev){box.innerHTML=`<h1 style="margin-top:0">Evento no encontrado</h1><p style="color:var(--color-muted-fog)">Revisa que el link esté completo o pide uno nuevo al organizador.</p>`}
+else{
+  const o=EPStore.ocupacion(id),lleno=o.n>=o.aforo;
+  box.innerHTML=`<h1 style="margin:0 0 4px">${esc(ev.nombre)}</h1>
+  <p style="color:var(--color-muted-fog);margin:0 0 8px">${esc(ev.lugar)}${ev.fecha?" · "+new Date(ev.fecha).toLocaleString("es-CO",{dateStyle:"long",timeStyle:"short"}):""}</p>
+  <div class="bar"><i style="width:${o.pct}%"></i></div><small style="color:var(--color-muted-fog)">${o.aforo-o.n>0?(o.aforo-o.n)+" cupos disponibles":"Sin cupos disponibles"}</small>
+  <form id="f" novalidate>
+    <label for="n">Nombre completo</label><input id="n" autocomplete="name" required>
+    <label for="c">Cédula</label><input id="c" inputmode="numeric" required>
+    <label for="m">Correo electrónico</label><input id="m" type="email" autocomplete="email" required>
+    <div class="err" id="e"></div>
+    <button class="btn-primary" ${lleno?"disabled":""}>${lleno?"Evento lleno":"Obtener mi Pase QR"}</button>
+  </form>`;
+  const form=document.getElementById("f"),nameInput=document.getElementById("n"),idInput=document.getElementById("c"),emailInput=document.getElementById("m"),error=document.getElementById("e");
+  form.addEventListener("input",()=>{error.textContent=""});
+  form.onsubmit=e=>{e.preventDefault();
+    const nombre=nameInput.value.trim(),cedula=idInput.value.replace(/\D/g,""),correo=emailInput.value.trim(),er=error;
+    if(nombre.length<3)return er.textContent="Escribe tu nombre completo.";
+    if(cedula.length<5||cedula.length>12)return er.textContent="La cédula debe tener entre 5 y 12 dígitos.";
+    if(!/^\S+@\S+\.\S+$/.test(correo))return er.textContent="Escribe un correo válido.";
+    try{const a=EPStore.registrar(id,{nombre,cedula,correo});location.href="ticket.html?id="+a.id}
+    catch(x){er.textContent=x.message}
+  };
+}
+</script></body></html>

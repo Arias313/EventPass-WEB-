@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#020618"><link rel="manifest" href="manifest.json">
+<title>Dashboard — EventPass</title><link rel="stylesheet" href="css/main.css">
+<style>
+  .sidebar-panel{position:fixed;top:0;left:-320px;width:min(300px,85vw);height:100vh;height:100dvh;overflow-y:auto;background:var(--color-midnight-panel);border-right:1px solid var(--color-steel-outline);z-index:1000;transition:left .3s cubic-bezier(.4,0,.2,1);padding:28px 24px;box-shadow:10px 0 30px rgba(0,0,0,.35)}
+  .sidebar-panel.is-open{left:0}
+  .sidebar-overlay{position:fixed;inset:0;background:rgba(2,6,24,.75);backdrop-filter:blur(4px);z-index:999;opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .sidebar-overlay.is-open{opacity:1;pointer-events:auto}
+  .sidebar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--color-steel-outline)}
+  .sidebar-close{background:transparent;border:0;color:var(--color-muted-fog);font-size:1.8rem;cursor:pointer;line-height:1}
+  .sidebar-nav{display:flex;flex-direction:column;gap:8px}
+  .sidebar-link{display:flex;align-items:center;gap:12px;padding:12px 16px;color:var(--color-signal-white);text-decoration:none;border-radius:8px;font-size:.95rem}
+  .sidebar-link:hover{background:var(--color-deep-slate);color:var(--color-nuxt-signal)}
+  .header-actions{display:flex;align-items:center;gap:14px}
+  .theme-option{display:flex;align-items:center;gap:10px;margin:18px 0}
+  .theme-option input{width:20px;min-height:20px;margin:0;accent-color:var(--color-nuxt-signal)}
+  :root[data-theme="light"]{--bg:#f3f6f8;--color-midnight-panel:#fff;--color-steel-outline:#cbd5df;--color-muted-fog:#526174;--color-signal-white:#17212b;--color-deep-slate:#e5ebef;--color-nuxt-signal:#008b59;--danger:#bd334f}
+</style>
+</head><body>
+<div id="sidebar-overlay" class="sidebar-overlay"></div>
+<aside id="sidebar-panel" class="sidebar-panel" aria-label="Menú principal" aria-hidden="true">
+  <div class="sidebar-header">
+    <div class="logo"><span class="logo-icon">◈</span><span class="logo-text">EventPass</span></div>
+    <button id="close-sidebar" class="sidebar-close" type="button" aria-label="Cerrar menú">&times;</button>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#eventos" class="sidebar-link"><span>▦</span> Eventos</a>
+    <a href="#asistentes" class="sidebar-link"><span>◎</span> Asistentes</a>
+    <button id="sidebar-new-event" class="btn-primary btn-sm" type="button">+ Crear Evento</button>
+    <button id="sidebar-settings" class="btn-secondary btn-sm" type="button">⚙ Configuración</button>
+  </nav>
+</aside>
+
+<header class="app-header">
+  <div class="header-inner" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
+    
+    <!-- Lado Izquierdo: Menú Hamburguesa separado del Logo -->
+     
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <button id="open-sidebar" type="button" aria-label="Abrir menú lateral" style="background: rgba(29,41,61,0.4); border: 1px solid var(--color-steel-outline); padding: 6px 12px; border-radius: 8px; cursor: pointer; color: var(--color-signal-white);">
+        ☰
+      </button>
+      <a href="index-administrador.html" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">EventPass</span>
+      </a>
+    </div>
+
+    <!-- Lado Derecho: Estado, Inicio y Configuración -->
+    <div class="header-actions" style="display: flex; align-items: center; gap: 20px;">
+      
+      <div id="connection-status" class="status-online" style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+        ● En línea
+      </div>
+      
+      <!-- Enlace a Inicio -->
+      <a href="index.html" class="nav-link-item" style="color: var(--color-signal-white); text-decoration: none; font-size: 0.95rem; font-weight: 500; transition: color 0.2s;">
+        Inicio
+      </a>
+
+      <!-- Configuración en la esquina -->
+      <button id="btn-configuracion" class="btn-ghost" type="button" title="Configuración" aria-label="Abrir configuración" style="background: transparent; border: none; font-size: 1.4rem; cursor: pointer; color: var(--color-signal-white); display: flex; align-items: center;">
+        ⚙
+      </button>
+
+      <a href="#" onclick="sessionStorage.removeItem('ep_admin'); window.location.href='index.html'; return false;" style="color: #ff4d4d; margin-top: auto; display: block; padding: 12px; text-decoration: none; font-weight: bold;">
+  Cerrar Sesión
+</a>
+      
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <div class="toolbar"><h1 style="margin:0">Consola del organizador</h1>
+    <button id="btn-nuevo" class="btn-primary btn-sm">+ Crear Evento</button></div>
+  <section class="stats" id="stats"></section>
+  <section class="ev-list" id="eventos"></section>
+  <section class="panel"><div class="toolbar"><h2 id="att-title" style="margin:0;font-size:1.1rem">Asistentes</h2></div>
+    <div class="tbl" id="asistentes"></div></section>
+</main>
+
+<div class="modal" id="modal" role="presentation"><form class="panel" id="f-ev" novalidate role="dialog" aria-modal="true" aria-labelledby="create-title">
+  <div class="toolbar"><h2 id="create-title" style="margin-top:0">Nuevo evento</h2><button id="close-create" class="btn-ghost btn-sm" type="button" aria-label="Cerrar formulario">Cerrar</button></div>
+  <label for="n">Nombre</label><input id="n" required maxlength="80">
+  <label for="d">Fecha</label><input id="d" type="datetime-local" required>
+  <label for="l">Ubicación</label><input id="l" required maxlength="80">
+  <label for="a">Cupos</label><input id="a" type="number" min="1" value="100" required>
+  <div class="err" id="e"></div>
+  <div class="row"><button class="btn-primary btn-sm" type="submit">Crear evento</button>
+  <button class="btn-secondary btn-sm" type="button" id="cancel">Cancelar</button></div>
+</form></div>
+
+<div class="modal" id="modal-configuracion" role="presentation">
+  <section class="panel" role="dialog" aria-modal="true" aria-labelledby="config-title">
+    <div class="toolbar"><h2 id="config-title" style="margin:0">Configuración</h2><button id="close-configuracion" class="btn-ghost btn-sm" type="button" aria-label="Cerrar configuración">Cerrar</button></div>
+    <label class="theme-option" for="theme-toggle"><input id="theme-toggle" type="checkbox"> Modo claro</label>
+    <button id="btn-logout" class="btn-secondary" type="button">Cerrar Sesión</button>
+  </section>
+</div>
+
+<div class="modal" id="qr-modal" role="presentation">
+  <section class="panel ticket" id="qr-card" role="dialog" aria-modal="true" aria-labelledby="qr-title"></section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="js/config.js"></script><script src="js/api-store.js"></script><script src="js/app.js"></script>
+<script>
+if (sessionStorage.getItem("ep_admin") !== "1") {
+  location.replace("pages/login.html");
+}
+const {esc,toast,pin}=EPUtil;let sel=null;
+const $=id=>document.getElementById(id);
+const link=id=>new URL("pages/registro.html?evento="+id,location.href).href;
+const formatDate=value=>{if(!value)return "Sin fecha";const date=new Date(value);return Number.isNaN(date.getTime())?"Fecha no válida":date.toLocaleString("es-CO",{dateStyle:"medium",timeStyle:"short"})};
+function render(){
+  const s=EPStore.stats(),evs=EPStore.listarEventos();
+  if(!evs.find(e=>e.id===sel))sel=evs[0]?evs[0].id:null;
+  $("stats").innerHTML=[["Eventos",s.eventos],["Registrados",s.registrados],["Aforo total",s.aforo],["Ocupación",s.ocupacion+"%"]]
+    .map(([l,v])=>`<div class="panel stat"><b>${v}</b><span>${l}</span></div>`).join("");
+  $("eventos").innerHTML=evs.length?evs.map(e=>{const o=EPStore.ocupacion(e.id);
+    return `<article class="panel ev ${e.id===sel?"sel":""}" data-id="${e.id}">
+      <h3>${esc(e.nombre)}</h3><div class="ev-meta"><span><b>Fecha</b><time>${esc(formatDate(e.fecha))}</time></span><span><b>Lugar</b><span>${esc(e.lugar)}</span></span></div>
+      <div class="bar"><i style="width:${o.pct}%"></i></div><small>${o.n} de ${o.aforo} cupos (${o.pct}%)</small>
+      <div class="row"><button class="btn-secondary btn-sm" data-copy="${e.id}">Copiar Link de Registro</button>
+      <a class="btn-ghost btn-sm" href="pages/registro.html?evento=${e.id}" target="_blank">Abrir</a>
+      <button class="btn-ghost btn-sm" data-del="${e.id}">Eliminar</button></div></article>`}).join("")
+    :`<div class="panel empty" style="grid-column:1/-1">Aún no tienes eventos. Crea el primero con “+ Crear Evento”.</div>`;
+  const ev=EPStore.getEvento(sel),as=ev?EPStore.getAsistentes(sel):[];
+  $("att-title").textContent=ev?"Asistentes · "+ev.nombre:"Asistentes";
+  $("asistentes").innerHTML=as.length?`<table><thead><tr><th>Nombre</th><th>Cédula</th><th>Correo</th><th>Registro</th><th>Pase</th></tr></thead><tbody>`+
+    as.map(a=>`<tr><td>${esc(a.nombre)}</td><td>${esc(a.cedula)}</td><td>${esc(a.correo)}</td><td>${new Date(a.ts).toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})}</td><td><button class="btn-ghost btn-sm" type="button" data-qr="${esc(a.id)}">Ver QR</button></td></tr>`).join("")+`</tbody></table>`
+    :`<div class="empty">Cuando alguien se registre aparecerá aquí al instante.</div>`;
+}
+$("eventos").addEventListener("click",e=>{
+  const c=e.target.closest("[data-copy]"),d=e.target.closest("[data-del]");
+  if(c){navigator.clipboard.writeText(link(c.dataset.copy)).then(()=>toast("Link copiado"),()=>prompt("Copia el link:",link(c.dataset.copy)));return}
+  if(d){if(confirm("¿Eliminar el evento y sus asistentes?"))EPStore.eliminarEvento(d.dataset.del);return}
+  const card=e.target.closest(".ev");if(card&&!e.target.closest("a")){sel=card.dataset.id;render()}
+});
+$("asistentes").addEventListener("click",e=>{
+  const button=e.target.closest("[data-qr]");if(!button)return;
+  const attendee=EPStore.getAsistente(button.dataset.qr),event=attendee&&EPStore.getEvento(attendee.eventoId);
+  if(!attendee||!event)return;
+  const pinCode=pin(attendee.id);
+  $("qr-card").innerHTML=`<div class="toolbar"><h2 id="qr-title" style="margin:0;font-size:1.1rem">Pase del asistente</h2><button class="btn-ghost btn-sm" type="button" data-qr-close aria-label="Cerrar modal">Cerrar</button></div>
+    <div class="meta">${esc(event.nombre)}</div><h1>${esc(attendee.nombre)}</h1><div class="meta">CC ${esc(attendee.cedula)}</div>
+    <div class="tear"></div><canvas id="qr-canvas" aria-label="Código QR del pase"></canvas>
+    <div class="pin-row"><div><span class="meta">PIN de entrada</span><strong class="pin-code">${esc(pinCode)}</strong></div><button class="btn-secondary btn-sm" type="button" data-copy-pin>Copiar PIN</button></div>
+    <p class="meta">${esc(event.lugar)}${event.fecha?" · "+esc(formatDate(event.fecha)):""}<br>Pase ${esc(attendee.id)}</p>`;
+  $("qr-modal").classList.add("open");
+  EPUtil.renderQr($("qr-canvas"),EPStore.qrPayload(attendee));
+});
+$("qr-modal").addEventListener("click",e=>{
+  if(e.target===$("qr-modal")||e.target.closest("[data-qr-close]"))$("qr-modal").classList.remove("open");
+  if(e.target.closest("[data-copy-pin]")){const code=$("qr-card").querySelector(".pin-code").textContent;try{navigator.clipboard.writeText(code).then(()=>toast("PIN copiado"),()=>prompt("Copia el PIN:",code))}catch(error){prompt("Copia el PIN:",code)}}
+});
+const sidebar=$("sidebar-panel"),overlay=$("sidebar-overlay"),openSidebar=$("open-sidebar");
+function setSidebar(open){sidebar.classList.toggle("is-open",open);overlay.classList.toggle("is-open",open);sidebar.setAttribute("aria-hidden",String(!open));openSidebar.setAttribute("aria-expanded",String(open))}
+openSidebar.onclick=()=>setSidebar(!sidebar.classList.contains("is-open"));
+$("close-sidebar").onclick=()=>setSidebar(false);
+overlay.onclick=()=>setSidebar(false);
+sidebar.querySelectorAll("a").forEach(item=>item.addEventListener("click",()=>setSidebar(false)));
+$("sidebar-new-event").onclick=()=>{setSidebar(false);$("btn-nuevo").click()};
+$("sidebar-settings").onclick=()=>{setSidebar(false);$("modal-configuracion").classList.add("open")};
+
+const configModal=$("modal-configuracion"),themeToggle=$("theme-toggle"),savedTheme=localStorage.getItem("eventpass-theme")||"dark";
+document.documentElement.dataset.theme=savedTheme;
+themeToggle.checked=savedTheme==="light";
+$("btn-configuracion").onclick=()=>configModal.classList.add("open");
+$("close-configuracion").onclick=()=>configModal.classList.remove("open");
+configModal.addEventListener("click",e=>{if(e.target===configModal)configModal.classList.remove("open")});
+themeToggle.onchange=()=>{const theme=themeToggle.checked?"light":"dark";document.documentElement.dataset.theme=theme;localStorage.setItem("eventpass-theme",theme)};
+$("btn-logout").onclick=()=>{sessionStorage.removeItem("ep_admin");location.href="pages/login.html"};
+
+addEventListener("keydown",e=>{if(e.key==="Escape"){setSidebar(false);$("modal").classList.remove("open");configModal.classList.remove("open");$("qr-modal").classList.remove("open")}});
+$("btn-nuevo").onclick=()=>{$("modal").classList.add("open");$("n").focus()};
+$("cancel").onclick=()=>$("modal").classList.remove("open");
+$("f-ev").onsubmit=e=>{e.preventDefault();
+    const nombre=$("n").value.trim(),fecha=$("d").value,lugar=$("l").value.trim(),cupos=Number($("a").value);
+    if(!nombre||!fecha||!lugar||!Number.isFinite(cupos)||cupos<=0){$("e").textContent="Completa nombre, fecha, ubicación y un número de cupos mayor a 0.";return}
+    const ev=EPStore.crearEvento({nombre,fecha,lugar,aforo:cupos});
+    sel=ev.id;e.target.reset();$("a").value=100;$("e").textContent="";$("modal").classList.remove("open");toast("Evento creado");
+  };
+  $("close-create").onclick=()=>$("modal").classList.remove("open");
+  $("modal").addEventListener("click",e=>{if(e.target===$("modal"))$("modal").classList.remove("open")});
+EPStore.subscribe(render);render();
+</script></body></html>

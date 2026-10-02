@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#020618" />
+  <title>EventPass — Registro de Organizador</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    /* Estilos enfocados en conversión (Minimalista) */
+    body {
+      background-color: var(--color-midnight-panel);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    
+    .auth-header {
+      margin-top: 60px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .auth-headline {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .auth-headline h1 {
+      font-size: 2.2rem;
+      color: var(--color-signal-white);
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+    
+    .auth-headline h1 span {
+      color: var(--color-nuxt-signal);
+    }
+    
+    .auth-headline p {
+      font-size: 1rem;
+      color: var(--color-muted-fog);
+    }
+
+    .auth-container {
+      width: 100%;
+      max-width: 440px;
+      background: var(--color-deep-slate);
+      padding: 40px 32px;
+      border: 1px solid var(--color-steel-outline);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      margin-bottom: 60px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      color: var(--color-signal-white);
+      font-weight: 500;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--color-midnight-panel);
+      border: 1px solid var(--color-steel-outline);
+      border-radius: 8px;
+      color: var(--color-signal-white);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus {
+      border-color: var(--color-nuxt-signal);
+    }
+
+    .terms-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 24px;
+      font-size: 0.8rem;
+      color: var(--color-muted-fog);
+      line-height: 1.4;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--color-nuxt-signal);
+      color: #000;
+      border: none;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-bottom: 16px;
+    }
+
+    .btn-submit:hover {
+      opacity: 0.9;
+    }
+
+    .auth-footer {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--color-muted-fog);
+    }
+
+    .auth-footer a {
+      color: var(--color-signal-white);
+      text-decoration: underline;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Logo Centrado (Funciona como botón de regreso al index) -->
+  <header class="auth-header">
+    <a href="../index.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px;">
+      <span style="color: var(--color-nuxt-signal); font-size: 2rem;">◈</span>
+      <span style="color: var(--color-signal-white); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px;">EventPass</span>
+    </a>
+  </header>
+
+  <!-- Título Principal de Venta -->
+  <div class="auth-headline">
+    <h1>Crea, administra y controla <br> <span>tus eventos</span> en un solo lugar</h1>
+    <p>Registra tu organización para empezar a gestionar aforos.</p>
+  </div>
+
+  <!-- Formulario Limpio -->
+  <main class="auth-container">
+    <form id="form-registro-admin">
+      
+      <div class="form-group">
+        <label for="admin-nombre">Nombre completo</label>
+        <input type="text" id="admin-nombre" class="form-input" placeholder="Ej. Carlos Mendoza" required />
+      </div>
+
+      <div class="form-group">
+        <label for="admin-empresa">Organización o Empresa</label>
+        <input type="text" id="admin-empresa" class="form-input" placeholder="Ej. Eventos Latam" required />
+      </div>
+
+      <div class="form-group">
+        <label for="admin-email">Correo del trabajo</label>
+        <input type="email" id="admin-email" class="form-input" placeholder="admin@empresa.com" required />
+      </div>
+
+      <div class="form-group">
+        <label for="admin-pass">Contraseña</label>
+        <input type="password" id="admin-pass" class="form-input" placeholder="••••••••" required />
+      </div>
+
+      <div class="terms-group">
+        <input type="checkbox" id="terms" required style="margin-top: 3px;" />
+        <label for="terms" style="color: inherit; font-size: inherit; cursor: pointer;">
+          Estoy de acuerdo con las Condiciones de servicio y la Política de privacidad de EventPass.
+        </label>
+      </div>
+
+      <button type="submit" class="btn-submit">
+        REGISTRAR E INGRESAR
+      </button>
+
+    </form>
+
+    <div class="auth-footer">
+      <p style="margin-top: 20px;">¿Ya tienes una cuenta organizadora? <br> <a href="login.html">Inicia sesión aquí</a></p>
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api-store.js"></script>
+<script>
+    document.getElementById('form-registro-admin').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const adminData = {
+        nombre: document.getElementById('admin-nombre').value.trim(),
+        empresa: document.getElementById('admin-empresa').value.trim(),
+        email: document.getElementById('admin-email').value.trim(),
+        pass: document.getElementById('admin-pass').value,
+        loggedAt: new Date().toISOString()
+      };
+
+      // 1. Guardamos en localStorage para que el Login lo pueda encontrar después
+      localStorage.setItem('ep_cuenta_creada', JSON.stringify(adminData));
+      
+      // 2. Iniciamos la sesión activa
+      sessionStorage.setItem('ep_admin', "1");
+
+      // 3. Redirigimos al dashboard
+      window.location.href = '../index-administrador.html';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#020618">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="../manifest.json">
+  <title>Tu pase — EventPass</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="header-inner" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
+    <!-- Logo funciona como botón de regreso al inicio -->
+    <a href="../index.html" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">EventPass</span>
+    </a>
+    
+    <div id="connection-status" class="status-online" style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+      ● En línea
+    </div>
+  </div>
+</header>
+
+<main class="wrap narrow">
+  <div class="panel ticket" id="t"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/api-store.js"></script>
+<script src="../js/app.js"></script>
+<script>
+const {esc,param,toast,pin} = EPUtil;
+const t = document.getElementById("t");
+const a = EPStore.getAsistente(param("id"));
+const ev = a && EPStore.getEvento(a.eventoId);
+
+if(!a || !ev) {
+  t.innerHTML = `<h1>Pase no encontrado</h1><p class="meta">Vuelve al link de registro del evento para generar uno.</p>`;
+} else {
+  const pinCode = pin(a.id);
+  t.innerHTML = `
+    <span class="logo-icon">◈</span><div class="meta">${esc(ev.nombre)}</div>
+    <h1>${esc(a.nombre)}</h1><div class="meta">CC ${esc(a.cedula)}</div>
+    <div class="tear"></div>
+    <canvas id="qr-canvas" aria-label="Código QR del pase" style="margin: 16px auto; border-radius: 8px;"></canvas>
+    <div class="pin-row">
+      <div><span class="meta">PIN de entrada</span><strong class="pin-code" id="pin-code">${esc(pinCode)}</strong></div>
+      <button class="btn-secondary btn-sm" id="copy-pin" type="button">Copiar PIN</button>
+    </div>
+    <p class="meta">${esc(ev.lugar)}${ev.fecha ? " · " + new Date(ev.fecha).toLocaleString("es-CO",{dateStyle:"medium",timeStyle:"short"}) : ""}<br>Pase ${esc(a.id)}</p>
+    <div class="no-print row" style="justify-content:center; gap: 8px; margin-top: 16px;">
+      <button class="btn-primary btn-sm" id="dl">Descargar QR</button>
+      <button class="btn-secondary btn-sm" id="pwa">Guardar en inicio</button>
+    </div>
+    <!-- Botón Volver agregado -->
+    <a href="../index.html" class="btn-secondary no-print" style="display: block; width: 100%; text-align: center; margin-top: 24px; padding: 12px; text-decoration: none; border-radius: 8px; box-sizing: border-box;">
+      ← Volver al inicio
+    </a>
+  `;
+  
+  const cv = document.getElementById("qr-canvas");
+  
+  // Generación directa del QR forzando colores (Punto 5)
+  QRCode.toCanvas(cv, EPStore.qrPayload(a), {
+    width: 220,
+    margin: 2,
+    color: {
+      dark: '#000000',  // Código QR en negro
+      light: '#ffffff'  // Fondo obligatoriamente en blanco
+    }
+  }, function (error) {
+    if (error) console.error("Error generando QR:", error);
+  });
+
+  document.getElementById("copy-pin").onclick = async() => {
+    try {
+      await navigator.clipboard.writeText(pinCode);
+      toast("PIN copiado");
+    } catch(e) {
+      prompt("Copia el PIN:", pinCode);
+    }
+  };
+  
+  document.getElementById("dl").onclick = () => {
+    const l = document.createElement("a");
+    l.download = "pase-" + a.cedula + ".png";
+    l.href = cv.toDataURL("image/png");
+    l.click();
+  };
+  
+  let dp;
+  addEventListener("beforeinstallprompt", e => {
+    e.preventDefault();
+    dp = e;
+  });
+  
+  document.getElementById("pwa").onclick = () => {
+    if(dp) {
+      dp.prompt();
+      dp = null;
+    } else {
+      toast("Usa Compartir → Añadir a pantalla de inicio");
+    }
+  };
+}
+</script>
+</body>
+</html>

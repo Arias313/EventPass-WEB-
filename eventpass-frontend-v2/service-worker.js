@@ -2,34 +2,25 @@
 // SERVICE WORKER — EventPass PWA (v3)
 // ============================================================
 
-const CACHE_STATIC_NAME = 'eventpass-static-v3';
-const CACHE_DYNAMIC_NAME = 'eventpass-dynamic-v3';
+const CACHE_STATIC_NAME = 'eventpass-static-v4';
+const CACHE_DYNAMIC_NAME = 'eventpass-dynamic-v4';
 
 // Archivos que componen el App Shell (Cache de Instalación)
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/pages/scanner.html',
-  '/pages/dashboard.html',
-  '/pages/registro.html',
-  '/pages/offline.html',
+  '/index-administrador.html',
   '/pages/login.html',
-  '/pages/eventos.html',
+  '/pages/registro.html',
+  '/pages/ticket.html',
   '/css/main.css',
   '/js/app.js',
   '/js/config.js',
   '/js/api-store.js',
-  '/js/auth.js',
-  '/js/eventos.js',
-  '/js/qr-generator.js',
-  '/js/qr-scanner.js',
-  '/js/dashboard.js',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  // Librerías CDN externas
-  'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js',
-  'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
+  'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js'
 ];
 
 // Prefijos de URL que NO deben pasar por la caché (se gestionan en la API o IndexedDB)
@@ -170,8 +161,8 @@ async function networkFirstWithOfflineFallback(request) {
     const cached = await caches.match(request);
     if (cached) return cached;
 
-    // Fallback a la página offline cacheada
-    const offlinePage = await caches.match('/pages/offline.html');
+    // Fallback a la landing principal
+    const offlinePage = await caches.match('/');
     return offlinePage || new Response('<h1>Modo Sin Conexión</h1><p>Revisa tu conexión a internet.</p>', {
       headers: { 'Content-Type': 'text/html' }
     });

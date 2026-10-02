@@ -3,84 +3,287 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#7c3aed" />
-  <meta name="description" content="Gestión de eventos corporativos con check-in QR en tiempo real" />
+  <meta name="theme-color" content="#020618" />
 
-  <!-- PWA: hace que se comporte como app nativa en iOS -->
+  <meta name="description" content="EventPass — Sistema inteligente de registros y control de aforo en tiempo real para eventos." />
+
+  <!-- Configuración PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="EventPass" />
   <link rel="apple-touch-icon" href="icons/icon-192x192.png" />
-
-  <!-- Manifest: le dice al navegador cómo instalar la PWA -->
   <link rel="manifest" href="manifest.json" />
 
-  <title>EventPass — Gestión de Eventos</title>
+  <title>EventPass — Sistema de Gestión y Registro de Eventos</title>
   <link rel="stylesheet" href="css/main.css" />
+
+  <!-- Estilos del Menú Lateral (Sidebar) y Header Ajustado -->
+  <style>
+    /* Estructura del Header según boceto */
+    .app-header .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 24px;
+    }
+    
+    .header-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-link-item {
+      color: var(--color-signal-white);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+    .nav-link-item:hover {
+      color: var(--color-nuxt-signal);
+    }
+
+    .btn-icon-menu {
+      background: rgba(29, 41, 61, 0.4);
+      border: 1px solid var(--color-steel-outline);
+      color: var(--color-signal-white);
+      font-size: 1.2rem;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease;
+    }
+    .btn-icon-menu:hover {
+      background: var(--color-deep-slate);
+      color: var(--color-nuxt-signal);
+    }
+
+    /* Sidebar Panel */
+    .sidebar-panel {
+      position: fixed;
+      top: 0;
+      left: -320px;
+      width: 300px;
+      height: 100vh;
+      background-color: var(--color-midnight-panel);
+      border-right: 1px solid var(--color-steel-outline);
+      z-index: 1000;
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 28px 24px;
+      box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
+    }
+    .sidebar-panel.is-open { left: 0; }
+    
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 24, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar-overlay.is-open { opacity: 1; pointer-events: auto; }
+    
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 36px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--color-steel-outline);
+    }
+    .sidebar-close {
+      background: transparent;
+      border: none;
+      color: var(--color-muted-fog);
+      font-size: 1.8rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .sidebar-close:hover { color: var(--color-signal-white); }
+    
+    .sidebar-nav { display: flex; flex-direction: column; gap: 8px; }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: var(--color-signal-white);
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .sidebar-link:hover {
+      background: var(--color-deep-slate);
+      color: var(--color-nuxt-signal);
+    }
+    @media (max-width: 600px) {
+      .header-nav-actions { gap: 8px !important; flex-wrap: wrap !important; }
+      .header-nav-actions .btn-secondary,
+      .header-nav-actions .btn-primary { padding: 6px 10px !important; font-size: 0.8rem !important; }
+      .header-inner { flex-wrap: wrap; }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Banner dinámico (offline, actualización, etc.) -->
-  <!-- Se inyecta desde app.js -->
-
-  <header class="app-header">
-    <div class="header-inner">
+  <!-- Modal / Menú Lateral Desplegable -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <aside id="sidebar-panel" class="sidebar-panel">
+    <div class="sidebar-header">
       <div class="logo">
         <span class="logo-icon">◈</span>
         <span class="logo-text">EventPass</span>
       </div>
-      <div id="connection-status" class="status-online">● En línea</div>
+      <button id="close-sidebar" class="sidebar-close" aria-label="Cerrar menú">&times;</button>
     </div>
-  </header>
+    
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link">
+        <span>🏠</span> Inicio
+      </a>
+      <a href="pages/caracteristicas.html" class="sidebar-link">
+        <span>✦</span> Características
+      </a>
+      <a href="pages/interaccion.html" class="sidebar-link">
+        <span>⚙</span> Integración App Móvil
+      </a>
+      
+      <a href="pages/registro-admin.html" class="btn-primary" style="margin: 12px 0; text-align: center;">Crear Cuenta Admin</a>
+      <a href="pages/login.html" class="btn-secondary" style="margin: 12px 0; text-align: center;">Iniciar Sesión</a>
+      
+      <a href="pages/soporte.html" class="sidebar-link">
+        <span>💬</span> Soporte Técnico
+      </a>
+    </nav>
+  </aside>
 
+  <!-- Encabezado Principal Ajustado (Según Boceto) -->
+<header class="app-header">
+  <div class="header-inner" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; gap: 16px;">
+    
+    <!-- Logo Limpio (Lado Izquierdo) -->
+    <a href="index.html" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">EventPass</span>
+    </a>
+    
+    <!-- Controles y Navegación (Lado Derecho) -->
+    <div class="header-nav-actions" style="display: flex; align-items: center; gap: 16px; flex-wrap: nowrap;">
+      
+      <!-- Indicador de estado -->
+      <div id="connection-status" class="status-online" style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+        ● En línea
+      </div>
+
+      <!-- Botones de Acción / Autenticación -->
+      <a href="pages/login.html" class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px; color: #ffffff; white-space: nowrap; background: transparent; transition: background 0.2s;">Iniciar Sesión</a>
+      <a href="pages/registro-admin.html" class="btn-primary" style="padding: 8px 16px; font-size: 0.9rem; text-decoration: none; white-space: nowrap;">Regístrate</a>
+
+      <!-- Botón Menú Hamburguesa -->
+      <button id="open-sidebar" class="btn-icon-menu" title="Abrir menú" aria-label="Abrir menú" style="background: rgba(29,41,61,0.4); border: 1px solid var(--color-steel-outline); padding: 6px 12px; border-radius: 8px; cursor: pointer; color: #ffffff; flex-shrink: 0;">
+        ☰
+      </button>
+    </div>
+  </div>
+</header>
+
+  <!-- Contenido Comercial (SaaS) -->
   <main class="home-main">
     <section class="hero">
-      <h1 class="hero-title">Eventos sin filas.<br/><em>Check-in en segundos.</em></h1>
-      <p class="hero-sub">Gestiona aforo, escanea QRs y monitorea tu evento en tiempo real — desde cualquier dispositivo, incluso sin internet.</p>
+      <h1 class="hero-title">
+        Gestión de Asistencia.<br/>
+        <em>Aforo en Tiempo Real.</em>
+      </h1>
+      <p class="hero-sub">
+        Crea tus eventos, genera formularios de inscripción personalizados y emite pases con código QR sincronizados automáticamente con tu app móvil de escaneo.
+      </p>
 
-      <!-- Botón de instalación PWA (oculto hasta que el navegador lo dispare) -->
-      <button id="btn-instalar" class="btn-instalar" style="display:none">
-        <span>⬇</span> Instalar App
+      <button id="btn-instalar" class="btn-instalar" style="display:none; max-width: 220px; margin-top: 16px;">
+        <span>⬇</span> Instalar App Web
       </button>
     </section>
 
-    <nav class="nav-cards">
-      <a href="pages/registro.html" class="nav-card card-registro">
-        <span class="card-icon">✦</span>
-        <h2>Inscripción</h2>
-        <p>Regístrate al evento y recibe tu QR personal</p>
-        <span class="card-arrow">→</span>
-      </a>
+    <!-- Puntos Clave del Servicio -->
+    <section class="nav-cards" style="padding-bottom: 40px;">
+      <div class="nav-card card-neutral">
+        <span class="card-icon" style="color: var(--color-nuxt-signal);">✦</span>
+        <h2>Formularios RSVP</h2>
+        <p>Recopila cédula, correo y datos clave de tus asistentes sin plataformas de pago complicadas.</p>
+      </div>
 
-      <a href="pages/scanner.html" class="nav-card card-scanner">
-        <span class="card-icon">⬡</span>
-        <h2>Scanner QR</h2>
-        <p>Check-in de asistentes con la cámara del dispositivo</p>
-        <span class="card-arrow">→</span>
-      </a>
+      <div class="nav-card card-neutral">
+        <span class="card-icon" style="color: var(--color-nuxt-signal);">◎</span>
+        <h2>Dashboard Live</h2>
+        <p>Visualiza entradas confirmadas, porcentaje de ocupación e ingresos en tiempo real.</p>
+      </div>
 
-      <a href="pages/dashboard.html" class="nav-card card-dashboard">
-        <span class="card-icon">◎</span>
-        <h2>Dashboard</h2>
-        <p>Aforo y estadísticas del evento en tiempo real</p>
-        <span class="card-arrow">→</span>
-      </a>
-    </nav>
+      <div class="nav-card card-neutral">
+        <span class="card-icon" style="color: var(--color-nuxt-signal);">⚡</span>
+        <h2>Sincronización App</h2>
+        <p>Tus listas de asistentes se sincronizan al instante con el escáner de la app nativa.</p>
+      </div>
+    </section>
+
+    <!-- Embudo de Entrada Único para el Administrador -->
+    <section class="panel" style="margin-bottom: 60px; text-align: center; padding: 48px 24px;">
+      <h2 style="font-size: 1.8rem; margin-bottom: 12px;">Panel del Organizador</h2>
+      <p style="color: var(--color-muted-fog); max-width: 55ch; margin: 0 auto 28px; font-size: 0.98rem;">
+        Si eres administrador de un evento, ingresa a tu consola para gestionar tus listas de asistentes, descargar códigos QR o crear una nueva fecha.
+      </p>
+      
+      <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+        <a href="pages/registro-admin.html" class="btn-primary" style="max-width: 240px; font-size: 1rem;">
+          Crear Cuenta Admin
+        </a>
+        <a href="pages/login.html" class="btn-secondary" style="max-width: 240px; font-size: 1rem;">
+          Iniciar Sesión
+        </a>
+      </div>
+    </section>
   </main>
 
-  <footer class="app-footer">
-    <p>EventPass &copy; 2026 — Funciona offline gracias a PWA</p>
-    <p><a href="pages/login.html" style="color:var(--text-faint);">Panel de organizador →</a></p>
+  <footer class="app-footer" style="margin-top: 0; border-top: 1px solid var(--color-steel-outline); padding: 36px 24px 48px;">
+    <p>EventPass &copy; 2026 — Plataforma de Gestión de Eventos &bull; PWA Offline Ready</p>
   </footer>
 
-<!-- Carga de scripts en index.html (Raíz del proyecto) -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <!-- Scripts base de la Web -->
+  <!-- Librería para generar Códigos QR -->
+<!-- Librería para generar Códigos QR -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script> 
+<script src="js/config.js"></script>
+<script src="js/api-store.js"></script>
+<script src="js/app.js"></script>
+  <!-- Lógica de apertura/cierre del Sidebar -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const openBtn = document.getElementById('open-sidebar');
+      const closeBtn = document.getElementById('close-sidebar');
+      const sidebar = document.getElementById('sidebar-panel');
+      const overlay = document.getElementById('sidebar-overlay');
 
-  <script src="js/config.js"></script>
-  <script src="js/api-store.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/qr-generator.js"></script>
-  
+      function toggleSidebar() {
+        const isOpen = sidebar.classList.contains('is-open');
+        if (isOpen) {
+          sidebar.classList.remove('is-open');
+          overlay.classList.remove('is-open');
+        } else {
+          sidebar.classList.add('is-open');
+          overlay.classList.add('is-open');
+        }
+      }
+
+      if (openBtn) openBtn.addEventListener('click', toggleSidebar);
+      if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+      if (overlay) overlay.addEventListener('click', toggleSidebar);
+    });
+  </script>
 </body>
-
 </html>
