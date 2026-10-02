@@ -13,6 +13,7 @@ const { noEncontrado, manejadorErrores } = require('./middleware/errores');
 
 const authRoutes = require('./routes/authRoutes');
 const eventoRoutes = require('./routes/eventoRoutes');
+const asistentePublicRoutes = require('./routes/asistentePublicRoutes');
 const syncRoutes = require('./routes/syncRoutes');
 
 const app = express();
@@ -36,6 +37,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/eventos', eventoRoutes);
+app.use('/api/asistentes', asistentePublicRoutes);
 app.use('/api/checkin', syncRoutes);
 
 // ─── Manejo de errores ────────────────────────────────────────

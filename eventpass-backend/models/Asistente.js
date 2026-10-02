@@ -7,11 +7,12 @@ const crypto = require('crypto');
 
 const asistenteSchema = new mongoose.Schema(
   {
-    eventoId: {
+    evento: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Evento',
       required: true,
-      index: true
+      index: true,
+      alias: 'eventoId'
     },
     nombre: {
       type: String,
@@ -19,23 +20,33 @@ const asistenteSchema = new mongoose.Schema(
       trim: true,
       minlength: 3
     },
-    email: {
+    cedula: {
+      type: String,
+      required: [true, 'La cédula es obligatoria'],
+      trim: true
+    },
+    correo: {
       type: String,
       required: [true, 'El correo es obligatorio'],
       lowercase: true,
       trim: true,
-      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Correo inválido']
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Correo inválido'],
+      alias: 'email'
     },
     empresa: {
       type: String,
       trim: true,
       default: ''
     },
-    qrCode: {
+    pin: {
       type: String,
       required: true,
       uppercase: true,
       trim: true
+    },
+    fechaRegistro: {
+      type: Date,
+      default: Date.now
     },
     estadoCheckin: {
       type: Boolean,
@@ -46,17 +57,20 @@ const asistenteSchema = new mongoose.Schema(
       default: null
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
-// Un mismo código QR no puede repetirse dentro de un mismo evento
-asistenteSchema.index({ eventoId: 1, qrCode: 1 }, { unique: true });
+// El PIN es la referencia pública y debe ser único en toda la colección.
+asistenteSchema.index({ pin: 1 }, { unique: true });
 
-// Genera automáticamente el código QR si no viene definido
+// El PIN aleatorio permite consultar un pase sin depender de la sesión del admin.
 asistenteSchema.pre('validate', function (next) {
-  if (!this.qrCode) {
-    const azar = crypto.randomBytes(4).toString('hex').toUpperCase();
-    this.qrCode = `EP-${azar}`;
+  if (!this.pin) {
+    this.pin = `EP-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
   }
   next();
 });

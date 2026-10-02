@@ -6,33 +6,46 @@ const mongoose = require('mongoose');
 
 const eventoSchema = new mongoose.Schema(
   {
-    adminId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Admin',
-      required: true,
-      index: true
-    },
-    nombre: {
+    titulo: {
       type: String,
-      required: [true, 'El nombre del evento es obligatorio'],
-      trim: true
+      required: [true, 'El título del evento es obligatorio'],
+      trim: true,
+      alias: 'nombre'
     },
     fecha: {
       type: Date,
       required: [true, 'La fecha del evento es obligatoria']
     },
-    ubicacion: {
+    lugar: {
       type: String,
+      required: [true, 'El lugar del evento es obligatorio'],
       trim: true,
-      default: ''
+      alias: 'ubicacion'
     },
-    capacidad: {
+    aforoTotal: {
       type: Number,
-      default: 300,
-      min: 1
+      required: [true, 'El aforo total es obligatorio'],
+      min: 1,
+      alias: 'capacidad'
+    },
+    creador: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+      required: true,
+      index: true,
+      alias: 'adminId'
+    },
+    registrados: {
+      type: Number,
+      default: 0,
+      min: 0
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 module.exports = mongoose.model('Evento', eventoSchema);

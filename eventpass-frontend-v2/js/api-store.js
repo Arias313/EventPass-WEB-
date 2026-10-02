@@ -1,14 +1,40 @@
 /* EPStore: capa de datos. Hoy usa localStorage + BroadcastChannel; la interfaz es la que consumirá la app móvil. */
 (function(){
-  const C=window.EP_CONFIG,K=C.STORAGE_KEY;
+  const C=window.EP_CONFIG||{STORAGE_KEY:"eventpass_db",CHANNEL:"eventpass-channel"};
+  const API_BASE="http://localhost:4000/api";
   const bc="BroadcastChannel" in window?new BroadcastChannel(C.CHANNEL):null;
   const uid=p=>p+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-3);
-  const read=()=>{try{return JSON.parse(localStorage.getItem(K))||{eventos:[],asistentes:[]}}catch(e){return{eventos:[],asistentes:[]}}};
+  const read=()=>{try{return JSON.parse(localStorage.getItem(C.STORAGE_KEY))||{eventos:[],asistentes:[]}}catch(e){return{eventos:[],asistentes:[]}}};
   const subs=new Set();const fire=()=>subs.forEach(f=>f());
-  const write=db=>{localStorage.setItem(K,JSON.stringify(db));bc&&bc.postMessage("change");fire()};
+  const write=db=>{localStorage.setItem(C.STORAGE_KEY,JSON.stringify(db));bc&&bc.postMessage("change");fire()};
+  const requestJson=async(url,options={})=>{
+    const res=await fetch(url,{headers:{"Content-Type":"application/json"},...options});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(data.error||"Error de la API");
+    return data;
+  };
   bc&&(bc.onmessage=fire);
-  window.addEventListener("storage",e=>{if(e.key===K)fire()});
+  window.addEventListener("storage",e=>{if(e.key===C.STORAGE_KEY)fire()});
   window.EPStore={
+    login: async(email,password)=>{
+      const data=await requestJson(`${API_BASE}/auth/login`,{
+        method:"POST",
+        body:JSON.stringify({email,password})
+      });
+      if(data.token){sessionStorage.setItem("ep_token",data.token);}
+      sessionStorage.setItem("ep_admin","1");
+      return data;
+    },
+    registerAdmin: async({nombre,email,password})=>{
+      const data=await requestJson(`${API_BASE}/auth/registro`,{
+        method:"POST",
+        body:JSON.stringify({nombre,email,password})
+      });
+      if(data.token){sessionStorage.setItem("ep_token",data.token);}
+      sessionStorage.setItem("ep_admin","1");
+      return data;
+    },
+    registro: async({nombre,email,password})=>window.EPStore.registerAdmin({nombre,email,password}),
     listarEventos:()=>read().eventos,
     getEvento:id=>read().eventos.find(e=>e.id===id)||null,
     crearEvento({nombre,fecha,lugar,aforo}){
