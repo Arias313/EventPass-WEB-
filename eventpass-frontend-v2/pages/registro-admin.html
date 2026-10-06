@@ -200,25 +200,14 @@
         loggedAt: new Date().toISOString()
       };
 
-      try {
-        await EPStore.registro({
-          nombre: adminData.nombre,
-          email: adminData.email,
-          password: adminData.pass
-        });
+      // 1. Guardamos en localStorage para que el Login lo pueda encontrar después
+      localStorage.setItem('ep_cuenta_creada', JSON.stringify(adminData));
+      
+      // 2. Iniciamos la sesión activa
+      sessionStorage.setItem('ep_admin', "1");
 
-        // Guardar solo perfil público sin contraseña
-        localStorage.setItem('ep_cuenta_creada', JSON.stringify({
-          nombre: adminData.nombre,
-          empresa: adminData.empresa,
-          email: adminData.email,
-          loggedAt: adminData.loggedAt
-        }));
-        sessionStorage.setItem('ep_admin', '1');
-        window.location.href = '../index-administrador.html';
-      } catch (error) {
-        alert(error.message || 'No se pudo crear la cuenta');
-      }
+      // 3. Redirigimos al dashboard
+      window.location.href = '../index-administrador.html';
     });
   </script>
 </body>

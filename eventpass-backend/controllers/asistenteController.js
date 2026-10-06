@@ -24,7 +24,11 @@ async function registrarAsistente(req, res, next) {
   let aforoReservado = false;
   let eventoId;
   try {
+<<<<<<< HEAD
     eventoId = req.body.evento || req.body.eventoId || req.params.eventoId;
+=======
+    eventoId = req.body.evento || req.params.eventoId;
+>>>>>>> a56a81421fdf70fcc25b35e662a63f3f9783c622
     const { nombre, cedula, empresa } = req.body;
     const correo = req.body.correo || req.body.email;
 
@@ -156,6 +160,7 @@ async function estadisticasEvento(req, res, next) {
  * Devuelve { status, asistente } — status: 'ok' | 'ya_registrado' | 'no_encontrado'
  */
 async function _resolverCheckin(eventoId, pinCrudo) {
+<<<<<<< HEAD
   const crudo = String(pinCrudo || '').trim();
   let pin = crudo.toUpperCase();
 
@@ -188,6 +193,10 @@ async function _resolverCheckin(eventoId, pinCrudo) {
     evento: eventoId,
     $or: condiciones
   });
+=======
+  const pin = (pinCrudo || '').trim().toUpperCase();
+  const asistente = await Asistente.findOne({ evento: eventoId, pin });
+>>>>>>> a56a81421fdf70fcc25b35e662a63f3f9783c622
 
   if (!asistente) return { status: 'no_encontrado', asistente: null };
   if (asistente.estadoCheckin) return { status: 'ya_registrado', asistente };
