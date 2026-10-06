@@ -4,6 +4,8 @@
 
 const Asistente = require('../models/Asistente');
 const Evento = require('../models/Evento');
+const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 /**
  * Helper puro: confirma que el evento existe y pertenece al admin autenticado.
@@ -13,25 +15,91 @@ const Evento = require('../models/Evento');
 async function _buscarEventoConPermiso(eventoId, adminId) {
   const evento = await Evento.findById(eventoId).catch(() => null);
   if (!evento) return { evento: null, error: 'no_encontrado' };
-  if (String(evento.adminId) !== String(adminId)) return { evento: null, error: 'sin_permiso' };
+  if (String(evento.creador) !== String(adminId)) return { evento: null, error: 'sin_permiso' };
   return { evento, error: null };
 }
 
-/** POST /api/eventos/:eventoId/asistentes — registro público (self-service, sin login) */
+/** POST /api/asistentes and legacy POST /api/eventos/:eventoId/asistentes */
 async function registrarAsistente(req, res, next) {
+  let aforoReservado = false;
+  let eventoId;
   try {
-    const { eventoId } = req.params;
-    const { nombre, email, empresa } = req.body;
+    eventoId = req.body.evento || req.body.eventoId || req.params.eventoId;
+    const { nombre, cedula, empresa } = req.body;
+    const correo = req.body.correo || req.body.email;
 
-    if (!nombre || !email) {
-      return res.status(400).json({ error: 'Nombre y correo son obligatorios.' });
+    if (![nombre, cedula, correo].every(value => typeof value === 'string' && value.trim())) {
+      return res.status(400).json({ error: 'Nombre, cédula y correo son obligatorios.' });
+    }
+    if (!mongoose.isValidObjectId(eventoId)) {
+      return res.status(400).json({ error: 'Identificador de evento inválido.' });
     }
 
-    const evento = await Evento.findById(eventoId);
-    if (!evento) return res.status(404).json({ error: 'Evento no encontrado.' });
+    const eventoExiste = await Evento.exists({ _id: eventoId });
+    if (!eventoExiste) return res.status(404).json({ error: 'Evento no encontrado.' });
 
-    const asistente = await Asistente.create({ eventoId, nombre, email, empresa });
+    const eventoReservado = await Evento.findOneAndUpdate(
+      {
+        _id: eventoId,
+        $expr: { $lt: [{ $ifNull: ['$registrados', 0] }, '$aforoTotal'] }
+      },
+      { $inc: { registrados: 1 } },
+      { new: true }
+    );
+    if (!eventoReservado) {
+      return res.status(409).json({ error: 'El evento alcanzó su aforo máximo.' });
+    }
+    aforoReservado = true;
+
+    let asistente;
+    for (let intento = 0; intento < 3; intento += 1) {
+      try {
+        asistente = await Asistente.create({
+          nombre: nombre.trim(),
+          cedula: cedula.trim(),
+          correo: correo.trim(),
+          evento: eventoId,
+          empresa,
+          pin: `EP-${crypto.randomBytes(8).toString('hex').toUpperCase()}`
+        });
+        break;
+      } catch (error) {
+        const duplicadoPin = error.code === 11000 && error.keyPattern?.pin;
+        if (!duplicadoPin || intento === 2) throw error;
+      }
+    }
+
     res.status(201).json({ asistente });
+  } catch (error) {
+    if (aforoReservado) {
+      await Evento.updateOne({ _id: eventoId }, { $inc: { registrados: -1 } }).catch(() => {});
+    }
+    next(error);
+  }
+}
+
+/** GET /api/asistentes/:id — consulta pública del pase por ObjectId o PIN */
+async function obtenerAsistentePublico(req, res, next) {
+  try {
+    const identificador = String(req.params.id || '').trim();
+    const consulta = mongoose.isValidObjectId(identificador)
+      ? Asistente.findById(identificador)
+      : Asistente.findOne({ pin: identificador.toUpperCase() });
+    const asistente = await consulta.populate('evento', 'titulo fecha lugar aforoTotal');
+
+    if (!asistente) return res.status(404).json({ error: 'Pase no encontrado.' });
+
+    res.json({
+      asistente: {
+        id: asistente.id,
+        nombre: asistente.nombre,
+        cedula: asistente.cedula,
+        correo: asistente.correo,
+        pin: asistente.pin,
+        fechaRegistro: asistente.fechaRegistro,
+        evento: asistente.evento
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -44,7 +112,7 @@ async function listarAsistentes(req, res, next) {
     if (error === 'no_encontrado') return res.status(404).json({ error: 'Evento no encontrado.' });
     if (error === 'sin_permiso') return res.status(403).json({ error: 'No tienes permiso sobre este evento.' });
 
-    const asistentes = await Asistente.find({ eventoId: evento._id }).sort({ createdAt: -1 });
+    const asistentes = await Asistente.find({ evento: evento._id }).sort({ fechaRegistro: -1 });
     res.json({ asistentes });
   } catch (error) {
     next(error);
@@ -59,15 +127,15 @@ async function estadisticasEvento(req, res, next) {
     if (error === 'sin_permiso') return res.status(403).json({ error: 'No tienes permiso sobre este evento.' });
 
     const [registrados, confirmados, ultimosCheckins] = await Promise.all([
-      Asistente.countDocuments({ eventoId: evento._id }),
-      Asistente.countDocuments({ eventoId: evento._id, estadoCheckin: true }),
-      Asistente.find({ eventoId: evento._id, estadoCheckin: true })
+      Asistente.countDocuments({ evento: evento._id }),
+      Asistente.countDocuments({ evento: evento._id, estadoCheckin: true }),
+      Asistente.find({ evento: evento._id, estadoCheckin: true })
         .sort({ fechaCheckin: -1 })
         .limit(8)
     ]);
 
     const pendientes = registrados - confirmados;
-    const capacidad = evento.capacidad;
+    const capacidad = evento.aforoTotal;
 
     res.json({
       registrados,
@@ -87,9 +155,39 @@ async function estadisticasEvento(req, res, next) {
  * Resuelve un check-in por código QR dentro de un evento.
  * Devuelve { status, asistente } — status: 'ok' | 'ya_registrado' | 'no_encontrado'
  */
-async function _resolverCheckin(eventoId, qrCodeCrudo) {
-  const qrCode = (qrCodeCrudo || '').trim().toUpperCase();
-  const asistente = await Asistente.findOne({ eventoId, qrCode });
+async function _resolverCheckin(eventoId, pinCrudo) {
+  const crudo = String(pinCrudo || '').trim();
+  let pin = crudo.toUpperCase();
+
+  // Si el scanner envía el QR en formato compuesto (ej. EP|eventoId|asistenteId|cedula o EP|eventoId|pin)
+  let asistenteId = null;
+  let cedula = null;
+  if (crudo.includes('|')) {
+    const partes = crudo.split('|');
+    // Si tiene 4 partes: EP | eventoId | id | cedula
+    if (partes.length >= 4) {
+      asistenteId = partes[2].trim();
+      cedula = partes[3].trim();
+    } else if (partes.length >= 2) {
+      pin = partes[partes.length - 1].trim().toUpperCase();
+    }
+  }
+
+  const condiciones = [{ pin }];
+  if (asistenteId && mongoose.isValidObjectId(asistenteId)) {
+    condiciones.push({ _id: asistenteId });
+  }
+  if (mongoose.isValidObjectId(crudo)) {
+    condiciones.push({ _id: crudo });
+  }
+  if (cedula) {
+    condiciones.push({ cedula });
+  }
+
+  const asistente = await Asistente.findOne({
+    evento: eventoId,
+    $or: condiciones
+  });
 
   if (!asistente) return { status: 'no_encontrado', asistente: null };
   if (asistente.estadoCheckin) return { status: 'ya_registrado', asistente };
@@ -107,7 +205,7 @@ async function checkin(req, res, next) {
     if (error === 'no_encontrado') return res.status(404).json({ error: 'Evento no encontrado.' });
     if (error === 'sin_permiso') return res.status(403).json({ error: 'No tienes permiso sobre este evento.' });
 
-    const { qrCode } = req.body;
+    const qrCode = req.body.qrCode || req.body.pin;
     if (!qrCode) return res.status(400).json({ error: 'Falta el código QR.' });
 
     const resultado = await _resolverCheckin(evento._id, qrCode);
@@ -153,6 +251,7 @@ async function sincronizarCheckins(req, res, next) {
 
 module.exports = {
   registrarAsistente,
+  obtenerAsistentePublico,
   listarAsistentes,
   estadisticasEvento,
   checkin,

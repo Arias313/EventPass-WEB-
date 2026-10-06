@@ -188,9 +188,10 @@
 
   <script src="../js/config.js"></script>
   <script src="../js/api-store.js"></script>
-<script>
-    document.getElementById('form-registro-admin').addEventListener('submit', (e) => {
+  <script>
+    document.getElementById('form-registro-admin').addEventListener('submit', async (e) => {
       e.preventDefault();
+
       const adminData = {
         nombre: document.getElementById('admin-nombre').value.trim(),
         empresa: document.getElementById('admin-empresa').value.trim(),
@@ -199,14 +200,25 @@
         loggedAt: new Date().toISOString()
       };
 
-      // 1. Guardamos en localStorage para que el Login lo pueda encontrar después
-      localStorage.setItem('ep_cuenta_creada', JSON.stringify(adminData));
-      
-      // 2. Iniciamos la sesión activa
-      sessionStorage.setItem('ep_admin', "1");
+      try {
+        await EPStore.registro({
+          nombre: adminData.nombre,
+          email: adminData.email,
+          password: adminData.pass
+        });
 
-      // 3. Redirigimos al dashboard
-      window.location.href = '../index-administrador.html';
+        // Guardar solo perfil público sin contraseña
+        localStorage.setItem('ep_cuenta_creada', JSON.stringify({
+          nombre: adminData.nombre,
+          empresa: adminData.empresa,
+          email: adminData.email,
+          loggedAt: adminData.loggedAt
+        }));
+        sessionStorage.setItem('ep_admin', '1');
+        window.location.href = '../index-administrador.html';
+      } catch (error) {
+        alert(error.message || 'No se pudo crear la cuenta');
+      }
     });
   </script>
 </body>

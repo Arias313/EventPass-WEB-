@@ -13,6 +13,7 @@ const { noEncontrado, manejadorErrores } = require('./middleware/errores');
 
 const authRoutes = require('./routes/authRoutes');
 const eventoRoutes = require('./routes/eventoRoutes');
+const asistentePublicRoutes = require('./routes/asistentePublicRoutes');
 const syncRoutes = require('./routes/syncRoutes');
 
 const app = express();
@@ -23,7 +24,18 @@ const origenesPermitidos = (process.env.CORS_ORIGIN || '*')
   .map((s) => s.trim());
 
 app.use(cors({
-  origin: origenesPermitidos.includes('*') ? true : origenesPermitidos,
+  origin: (origin, callback) => {
+    if (!origin || origenesPermitidos.includes('*')) {
+      return callback(null, true);
+    }
+    if (
+      origenesPermitidos.includes(origin) ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error('Bloqueado por política CORS: ' + origin));
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -36,6 +48,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/eventos', eventoRoutes);
+app.use('/api/asistentes', asistentePublicRoutes);
 app.use('/api/checkin', syncRoutes);
 
 // ─── Manejo de errores ────────────────────────────────────────

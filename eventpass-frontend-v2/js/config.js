@@ -6,6 +6,5 @@
 window.EP_CONFIG={
   STORAGE_KEY:"eventpass_db_v1",
   CHANNEL:"eventpass_live",
-  API_BASE:null, // Si defines una URL, sustituye EPStore por llamadas fetch a tu backend.
-  ADMIN:{email:"admin@eventpass.com",password:"admin123"} // Solo demo
+  API_BASE:"http://localhost:4000/api"
 };

@@ -173,24 +173,18 @@
   </main>
 
   <script src="../js/config.js"></script>
-<script>
-    document.getElementById("f").onsubmit = e => {
+  <script src="../js/api-store.js"></script>
+  <script>
+    document.getElementById("f").onsubmit = async (e) => {
       e.preventDefault();
       const inputEmail = document.getElementById("u").value.trim();
       const inputPass = document.getElementById("p").value;
-      
-      // 1. Buscamos si hay una cuenta recién registrada en el navegador
-      const cuentaGuardada = JSON.parse(localStorage.getItem('ep_cuenta_creada'));
-      
-      // 2. Traemos al admin por defecto que tienes en config.js
-      const configAdmin = EP_CONFIG.ADMIN; 
 
-      // 3. Validamos: ¿Es la cuenta recién creada? ¿O es el admin por defecto?
-      if ((cuentaGuardada && inputEmail === cuentaGuardada.email && inputPass === cuentaGuardada.pass) || (inputEmail === configAdmin.email && inputPass === configAdmin.password)) {
-        sessionStorage.setItem("ep_admin", "1");
+      try {
+        await EPStore.login(inputEmail, inputPass);
         window.location.href = "../index-administrador.html";
-      } else {
-        document.getElementById("e").textContent = "Correo o contraseña incorrectos.";
+      } catch (error) {
+        document.getElementById("e").textContent = "Correo o contraseña incorrectos";
       }
     };
   </script>

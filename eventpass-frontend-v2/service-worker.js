@@ -6,20 +6,21 @@ const CACHE_STATIC_NAME = 'eventpass-static-v4';
 const CACHE_DYNAMIC_NAME = 'eventpass-dynamic-v4';
 
 // Archivos que componen el App Shell (Cache de Instalación)
+const scope = self.registration.scope;
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/index-administrador.html',
-  '/pages/login.html',
-  '/pages/registro.html',
-  '/pages/ticket.html',
-  '/css/main.css',
-  '/js/app.js',
-  '/js/config.js',
-  '/js/api-store.js',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  scope,
+  new URL('index.html', scope).href,
+  new URL('index-administrador.html', scope).href,
+  new URL('pages/login.html', scope).href,
+  new URL('pages/registro.html', scope).href,
+  new URL('pages/ticket.html', scope).href,
+  new URL('css/main.css', scope).href,
+  new URL('js/app.js', scope).href,
+  new URL('js/config.js', scope).href,
+  new URL('js/api-store.js', scope).href,
+  new URL('manifest.json', scope).href,
+  new URL('icons/icon-192x192.png', scope).href,
+  new URL('icons/icon-512x512.png', scope).href,
   'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js'
 ];
 

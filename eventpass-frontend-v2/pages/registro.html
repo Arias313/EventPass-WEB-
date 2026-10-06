@@ -21,9 +21,22 @@
 <main class="wrap narrow"><div class="panel" id="box"></div></main>
 <script src="../js/config.js"></script><script src="../js/api-store.js"></script><script src="../js/app.js"></script>
 <script>
-const {esc,param}=EPUtil,box=document.getElementById("box"),id=param("evento"),ev=id&&EPStore.getEvento(id);
-if(!ev){box.innerHTML=`<h1 style="margin-top:0">Evento no encontrado</h1><p style="color:var(--color-muted-fog)">Revisa que el link esté completo o pide uno nuevo al organizador.</p>`}
-else{
+const {esc,param}=EPUtil,box=document.getElementById("box"),id=param("evento");
+
+async function init() {
+  if (!id) {
+    box.innerHTML=`<h1 style="margin-top:0">Enlace incompleto</h1><p style="color:var(--color-muted-fog)">Falta el identificador del evento en la URL.</p>`;
+    return;
+  }
+
+  box.innerHTML=`<div class="empty">Cargando información del evento...</div>`;
+  const ev = await EPStore.fetchEvento(id);
+
+  if(!ev){
+    box.innerHTML=`<h1 style="margin-top:0">Evento no encontrado</h1><p style="color:var(--color-muted-fog)">Revisa que el link esté completo o pide uno nuevo al organizador.</p>`;
+    return;
+  }
+
   const o=EPStore.ocupacion(id),lleno=o.n>=o.aforo;
   box.innerHTML=`<h1 style="margin:0 0 4px">${esc(ev.nombre)}</h1>
   <p style="color:var(--color-muted-fog);margin:0 0 8px">${esc(ev.lugar)}${ev.fecha?" · "+new Date(ev.fecha).toLocaleString("es-CO",{dateStyle:"long",timeStyle:"short"}):""}</p>
@@ -35,15 +48,24 @@ else{
     <div class="err" id="e"></div>
     <button class="btn-primary" ${lleno?"disabled":""}>${lleno?"Evento lleno":"Obtener mi Pase QR"}</button>
   </form>`;
+
   const form=document.getElementById("f"),nameInput=document.getElementById("n"),idInput=document.getElementById("c"),emailInput=document.getElementById("m"),error=document.getElementById("e");
   form.addEventListener("input",()=>{error.textContent=""});
-  form.onsubmit=e=>{e.preventDefault();
+  form.onsubmit=async e=>{
+    e.preventDefault();
     const nombre=nameInput.value.trim(),cedula=idInput.value.replace(/\D/g,""),correo=emailInput.value.trim(),er=error;
     if(nombre.length<3)return er.textContent="Escribe tu nombre completo.";
     if(cedula.length<5||cedula.length>12)return er.textContent="La cédula debe tener entre 5 y 12 dígitos.";
     if(!/^\S+@\S+\.\S+$/.test(correo))return er.textContent="Escribe un correo válido.";
-    try{const a=EPStore.registrar(id,{nombre,cedula,correo});location.href="ticket.html?id="+a.id}
-    catch(x){er.textContent=x.message}
+    try{
+      er.textContent="Generando tu pase...";
+      const a=await EPStore.registrar(id,{nombre,cedula,correo});
+      location.href="ticket.html?id="+(a.pin||a.id||a._id);
+    } catch(x){
+      er.textContent=x.message||"Error al registrarse";
+    }
   };
 }
+
+init();
 </script></body></html>

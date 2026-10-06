@@ -8,18 +8,21 @@ const Asistente = require('../models/Asistente');
 /** POST /api/eventos — crea un evento (requiere auth) */
 async function crearEvento(req, res, next) {
   try {
-    const { nombre, fecha, ubicacion, capacidad } = req.body;
+    const titulo = req.body.titulo ?? req.body.nombre;
+    const fecha = req.body.fecha;
+    const lugar = req.body.lugar ?? req.body.ubicacion;
+    const aforoTotal = req.body.aforoTotal ?? req.body.capacidad;
 
-    if (!nombre || !fecha) {
-      return res.status(400).json({ error: 'Nombre y fecha del evento son obligatorios.' });
+    if (!titulo || !fecha || !lugar || aforoTotal === undefined) {
+      return res.status(400).json({ error: 'Título, fecha, lugar y aforo total son obligatorios.' });
     }
 
     const evento = await Evento.create({
-      adminId: req.adminId,
-      nombre,
+      creador: req.adminId,
+      titulo,
       fecha,
-      ubicacion,
-      capacidad
+      lugar,
+      aforoTotal
     });
 
     res.status(201).json({ evento });
@@ -31,14 +34,14 @@ async function crearEvento(req, res, next) {
 /** GET /api/eventos — lista los eventos del admin autenticado */
 async function listarMisEventos(req, res, next) {
   try {
-    const eventos = await Evento.find({ adminId: req.adminId }).sort({ fecha: 1 });
+    const eventos = await Evento.find({ creador: req.adminId }).sort({ fecha: 1 });
 
     // Adjunta un conteo rápido de asistentes/check-ins a cada evento (para la vista "Mis eventos")
     const eventosConConteo = await Promise.all(
       eventos.map(async (evento) => {
         const [registrados, confirmados] = await Promise.all([
-          Asistente.countDocuments({ eventoId: evento._id }),
-          Asistente.countDocuments({ eventoId: evento._id, estadoCheckin: true })
+          Asistente.countDocuments({ evento: evento._id }),
+          Asistente.countDocuments({ evento: evento._id, estadoCheckin: true })
         ]);
         return { ...evento.toJSON(), registrados, confirmados };
       })
@@ -50,10 +53,10 @@ async function listarMisEventos(req, res, next) {
   }
 }
 
-/** GET /api/eventos/:eventoId — info pública básica del evento (para registro/scanner/dashboard) */
+/** GET /api/eventos/:id — detalle público del evento */
 async function obtenerEvento(req, res, next) {
   try {
-    const evento = await Evento.findById(req.params.eventoId);
+    const evento = await Evento.findById(req.params.id || req.params.eventoId);
     if (!evento) return res.status(404).json({ error: 'Evento no encontrado.' });
     res.json({ evento });
   } catch (error) {
@@ -67,11 +70,14 @@ async function actualizarEvento(req, res, next) {
     const evento = await _verificarPropiedad(req, res);
     if (!evento) return;
 
-    const { nombre, fecha, ubicacion, capacidad } = req.body;
-    if (nombre !== undefined) evento.nombre = nombre;
+    const titulo = req.body.titulo ?? req.body.nombre;
+    const fecha = req.body.fecha;
+    const lugar = req.body.lugar ?? req.body.ubicacion;
+    const aforoTotal = req.body.aforoTotal ?? req.body.capacidad;
+    if (titulo !== undefined) evento.titulo = titulo;
     if (fecha !== undefined) evento.fecha = fecha;
-    if (ubicacion !== undefined) evento.ubicacion = ubicacion;
-    if (capacidad !== undefined) evento.capacidad = capacidad;
+    if (lugar !== undefined) evento.lugar = lugar;
+    if (aforoTotal !== undefined) evento.aforoTotal = aforoTotal;
 
     await evento.save();
     res.json({ evento });
@@ -87,7 +93,7 @@ async function eliminarEvento(req, res, next) {
     if (!evento) return;
 
     await Promise.all([
-      Asistente.deleteMany({ eventoId: evento._id }),
+      Asistente.deleteMany({ evento: evento._id }),
       evento.deleteOne()
     ]);
 
@@ -99,12 +105,12 @@ async function eliminarEvento(req, res, next) {
 
 /** Helper interno: valida que el evento exista y pertenezca al admin autenticado */
 async function _verificarPropiedad(req, res) {
-  const evento = await Evento.findById(req.params.eventoId);
+  const evento = await Evento.findById(req.params.id || req.params.eventoId);
   if (!evento) {
     res.status(404).json({ error: 'Evento no encontrado.' });
     return null;
   }
-  if (String(evento.adminId) !== String(req.adminId)) {
+  if (String(evento.creador) !== String(req.adminId)) {
     res.status(403).json({ error: 'No tienes permiso sobre este evento.' });
     return null;
   }

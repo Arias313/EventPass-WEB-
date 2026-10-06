@@ -65,7 +65,7 @@
         ⚙
       </button>
 
-      <a href="#" onclick="sessionStorage.removeItem('ep_admin'); window.location.href='index.html'; return false;" style="color: #ff4d4d; margin-top: auto; display: block; padding: 12px; text-decoration: none; font-weight: bold;">
+      <a href="#" onclick="EPStore.logout(); window.location.href='index.html'; return false;" style="color: #ff4d4d; margin-top: auto; display: block; padding: 12px; text-decoration: none; font-weight: bold;">
   Cerrar Sesión
 </a>
       
@@ -104,6 +104,7 @@
   <section class="panel ticket" id="qr-card" role="dialog" aria-modal="true" aria-labelledby="qr-title"></section>
 </div>
 
+<script src="js/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="js/config.js"></script><script src="js/api-store.js"></script><script src="js/app.js"></script>
 <script>
@@ -136,14 +137,24 @@ function render(){
 $("eventos").addEventListener("click",e=>{
   const c=e.target.closest("[data-copy]"),d=e.target.closest("[data-del]");
   if(c){navigator.clipboard.writeText(link(c.dataset.copy)).then(()=>toast("Link copiado"),()=>prompt("Copia el link:",link(c.dataset.copy)));return}
-  if(d){if(confirm("¿Eliminar el evento y sus asistentes?"))EPStore.eliminarEvento(d.dataset.del);return}
-  const card=e.target.closest(".ev");if(card&&!e.target.closest("a")){sel=card.dataset.id;render()}
+  if(d){
+    if(confirm("¿Eliminar el evento y sus asistentes?")){
+      EPStore.eliminarEvento(d.dataset.del).then(()=>{toast("Evento eliminado");render();});
+    }
+    return;
+  }
+  const card=e.target.closest(".ev");
+  if(card&&!e.target.closest("a")){
+    sel=card.dataset.id;
+    EPStore.fetchAsistentes(sel).then(render);
+    render();
+  }
 });
 $("asistentes").addEventListener("click",e=>{
   const button=e.target.closest("[data-qr]");if(!button)return;
   const attendee=EPStore.getAsistente(button.dataset.qr),event=attendee&&EPStore.getEvento(attendee.eventoId);
   if(!attendee||!event)return;
-  const pinCode=pin(attendee.id);
+  const pinCode=attendee.pin||pin(attendee.id);
   $("qr-card").innerHTML=`<div class="toolbar"><h2 id="qr-title" style="margin:0;font-size:1.1rem">Pase del asistente</h2><button class="btn-ghost btn-sm" type="button" data-qr-close aria-label="Cerrar modal">Cerrar</button></div>
     <div class="meta">${esc(event.nombre)}</div><h1>${esc(attendee.nombre)}</h1><div class="meta">CC ${esc(attendee.cedula)}</div>
     <div class="tear"></div><canvas id="qr-canvas" aria-label="Código QR del pase"></canvas>
@@ -172,18 +183,38 @@ $("btn-configuracion").onclick=()=>configModal.classList.add("open");
 $("close-configuracion").onclick=()=>configModal.classList.remove("open");
 configModal.addEventListener("click",e=>{if(e.target===configModal)configModal.classList.remove("open")});
 themeToggle.onchange=()=>{const theme=themeToggle.checked?"light":"dark";document.documentElement.dataset.theme=theme;localStorage.setItem("eventpass-theme",theme)};
-$("btn-logout").onclick=()=>{sessionStorage.removeItem("ep_admin");location.href="pages/login.html"};
+$("btn-logout").onclick=()=>{EPStore.logout();location.href="pages/login.html"};
 
 addEventListener("keydown",e=>{if(e.key==="Escape"){setSidebar(false);$("modal").classList.remove("open");configModal.classList.remove("open");$("qr-modal").classList.remove("open")}});
 $("btn-nuevo").onclick=()=>{$("modal").classList.add("open");$("n").focus()};
 $("cancel").onclick=()=>$("modal").classList.remove("open");
-$("f-ev").onsubmit=e=>{e.preventDefault();
-    const nombre=$("n").value.trim(),fecha=$("d").value,lugar=$("l").value.trim(),cupos=Number($("a").value);
-    if(!nombre||!fecha||!lugar||!Number.isFinite(cupos)||cupos<=0){$("e").textContent="Completa nombre, fecha, ubicación y un número de cupos mayor a 0.";return}
-    const ev=EPStore.crearEvento({nombre,fecha,lugar,aforo:cupos});
-    sel=ev.id;e.target.reset();$("a").value=100;$("e").textContent="";$("modal").classList.remove("open");toast("Evento creado");
-  };
-  $("close-create").onclick=()=>$("modal").classList.remove("open");
-  $("modal").addEventListener("click",e=>{if(e.target===$("modal"))$("modal").classList.remove("open")});
-EPStore.subscribe(render);render();
+$("f-ev").onsubmit=async e=>{
+  e.preventDefault();
+  const nombre=$("n").value.trim(),fecha=$("d").value,lugar=$("l").value.trim(),cupos=Number($("a").value);
+  if(!nombre||!fecha||!lugar||!Number.isFinite(cupos)||cupos<=0){
+    $("e").textContent="Completa nombre, fecha, ubicación y un número de cupos mayor a 0.";
+    return;
+  }
+  try {
+    const ev=await EPStore.crearEvento({nombre,fecha,lugar,aforo:cupos});
+    sel=ev.id;
+    e.target.reset();
+    $("a").value=100;
+    $("e").textContent="";
+    $("modal").classList.remove("open");
+    toast("Evento creado");
+    render();
+  } catch (err) {
+    $("e").textContent=err.message||"Error al crear evento.";
+  }
+};
+$("close-create").onclick=()=>$("modal").classList.remove("open");
+$("modal").addEventListener("click",e=>{if(e.target===$("modal"))$("modal").classList.remove("open")});
+
+EPStore.subscribe(render);
+render();
+EPStore.refreshEventos().then(()=>{
+  if(sel)EPStore.fetchAsistentes(sel).then(render);
+  render();
+});
 </script></body></html>
