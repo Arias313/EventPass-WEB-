@@ -24,7 +24,6 @@ async function crearEvento(req, res, next) {
       lugar,
       aforoTotal
     });
-
     res.status(201).json({ evento });
   } catch (error) {
     next(error);
@@ -58,7 +57,11 @@ async function obtenerEvento(req, res, next) {
   try {
     const evento = await Evento.findById(req.params.id || req.params.eventoId);
     if (!evento) return res.status(404).json({ error: 'Evento no encontrado.' });
-    res.json({ evento });
+    const [registrados, confirmados] = await Promise.all([
+      Asistente.countDocuments({ evento: evento._id }),
+      Asistente.countDocuments({ evento: evento._id, estadoCheckin: true })
+    ]);
+    res.json({ evento: { ...evento.toJSON(), registrados, confirmados } });
   } catch (error) {
     next(error);
   }

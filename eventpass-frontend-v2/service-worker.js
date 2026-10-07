@@ -2,8 +2,8 @@
 // SERVICE WORKER — EventPass PWA (v3)
 // ============================================================
 
-const CACHE_STATIC_NAME = 'eventpass-static-v4';
-const CACHE_DYNAMIC_NAME = 'eventpass-dynamic-v4';
+const CACHE_STATIC_NAME = 'eventpass-static-v5';
+const CACHE_DYNAMIC_NAME = 'eventpass-dynamic-v5';
 
 // Archivos que componen el App Shell (Cache de Instalación)
 const scope = self.registration.scope;
@@ -20,8 +20,7 @@ const STATIC_ASSETS = [
   new URL('js/api-store.js', scope).href,
   new URL('manifest.json', scope).href,
   new URL('icons/icon-192x192.png', scope).href,
-  new URL('icons/icon-512x512.png', scope).href,
-  'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js'
+  new URL('icons/icon-512x512.png', scope).href
 ];
 
 // Prefijos de URL que NO deben pasar por la caché (se gestionan en la API o IndexedDB)
@@ -113,13 +112,22 @@ self.addEventListener('fetch', (event) => {
 
 // ─── ESTRATEGIAS DE CACHÉ ───────────────────────────────────
 
+function isJavaScriptResponse(response) {
+  return /(?:java|ecma)script/i.test(response.headers.get('content-type') || '');
+}
+
 async function cacheFirst(request) {
   const cached = await caches.match(request);
-  if (cached) return cached;
+  if (cached && (request.destination !== 'script' || isJavaScriptResponse(cached))) return cached;
 
   try {
     const networkResponse = await fetch(request);
-    if (networkResponse && networkResponse.ok && networkResponse.type === 'basic') {
+    if (
+      networkResponse &&
+      networkResponse.ok &&
+      networkResponse.type === 'basic' &&
+      (request.destination !== 'script' || isJavaScriptResponse(networkResponse))
+    ) {
       const cache = await caches.open(CACHE_STATIC_NAME);
       cache.put(request, networkResponse.clone());
     }
@@ -163,7 +171,7 @@ async function networkFirstWithOfflineFallback(request) {
     if (cached) return cached;
 
     // Fallback a la landing principal
-    const offlinePage = await caches.match('/');
+    const offlinePage = await caches.match(scope);
     return offlinePage || new Response('<h1>Modo Sin Conexión</h1><p>Revisa tu conexión a internet.</p>', {
       headers: { 'Content-Type': 'text/html' }
     });

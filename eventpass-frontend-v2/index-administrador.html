@@ -65,9 +65,9 @@
         ⚙
       </button>
 
-      <a href="#" onclick="EPStore.logout(); window.location.href='index.html'; return false;" style="color: #ff4d4d; margin-top: auto; display: block; padding: 12px; text-decoration: none; font-weight: bold;">
-  Cerrar Sesión
-</a>
+      <a id="link-logout" href="pages/login.html" style="color: #ff4d4d; margin-top: auto; display: block; padding: 12px; text-decoration: none; font-weight: bold;">
+        Cerrar Sesión
+      </a>
       
     </div>
   </div>
@@ -105,13 +105,15 @@
 </div>
 
 <script src="js/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="js/config.js"></script><script src="js/api-store.js"></script><script src="js/app.js"></script>
 <script>
-if (sessionStorage.getItem("ep_admin") !== "1") {
+if (typeof EPStore === "undefined") {
+  document.querySelector("main").innerHTML = `<div class="panel err" role="alert">No se cargó js/api-store.js, revisa la consola</div>`;
+} else {
+if (localStorage.getItem("ep_admin") !== "1" && sessionStorage.getItem("ep_admin") !== "1") {
   location.replace("pages/login.html");
 }
-const {esc,toast,pin}=EPUtil;let sel=null;
+const {esc,toast}=EPUtil;let sel=null;
 const $=id=>document.getElementById(id);
 const link=id=>new URL("pages/registro.html?evento="+id,location.href).href;
 const formatDate=value=>{if(!value)return "Sin fecha";const date=new Date(value);return Number.isNaN(date.getTime())?"Fecha no válida":date.toLocaleString("es-CO",{dateStyle:"medium",timeStyle:"short"})};
@@ -123,7 +125,7 @@ function render(){
   $("eventos").innerHTML=evs.length?evs.map(e=>{const o=EPStore.ocupacion(e.id);
     return `<article class="panel ev ${e.id===sel?"sel":""}" data-id="${e.id}">
       <h3>${esc(e.nombre)}</h3><div class="ev-meta"><span><b>Fecha</b><time>${esc(formatDate(e.fecha))}</time></span><span><b>Lugar</b><span>${esc(e.lugar)}</span></span></div>
-      <div class="bar"><i style="width:${o.pct}%"></i></div><small>${o.n} de ${o.aforo} cupos (${o.pct}%)</small>
+      <div class="bar"><i style="width:${o.pct}%"></i></div><small>${o.n} de ${o.aforo ?? "—"} cupos (${o.pct}%)</small>
       <div class="row"><button class="btn-secondary btn-sm" data-copy="${e.id}">Copiar Link de Registro</button>
       <a class="btn-ghost btn-sm" href="pages/registro.html?evento=${e.id}" target="_blank">Abrir</a>
       <button class="btn-ghost btn-sm" data-del="${e.id}">Eliminar</button></div></article>`}).join("")
@@ -132,21 +134,25 @@ function render(){
   $("att-title").textContent=ev?"Asistentes · "+ev.nombre:"Asistentes";
   $("asistentes").innerHTML=as.length?`<table><thead><tr><th>Nombre</th><th>Cédula</th><th>Correo</th><th>Registro</th><th>Pase</th></tr></thead><tbody>`+
     as.map(a=>`<tr><td>${esc(a.nombre)}</td><td>${esc(a.cedula)}</td><td>${esc(a.correo)}</td><td>${new Date(a.ts).toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})}</td><td><button class="btn-ghost btn-sm" type="button" data-qr="${esc(a.id)}">Ver QR</button></td></tr>`).join("")+`</tbody></table>`
-    :`<div class="empty">Cuando alguien se registre aparecerá aquí al instante.</div>`;
+    :`<div class="empty">Los registros se actualizan automáticamente cada 8 segundos.</div>`;
 }
 $("eventos").addEventListener("click",e=>{
   const c=e.target.closest("[data-copy]"),d=e.target.closest("[data-del]");
   if(c){navigator.clipboard.writeText(link(c.dataset.copy)).then(()=>toast("Link copiado"),()=>prompt("Copia el link:",link(c.dataset.copy)));return}
   if(d){
     if(confirm("¿Eliminar el evento y sus asistentes?")){
-      EPStore.eliminarEvento(d.dataset.del).then(()=>{toast("Evento eliminado");render();});
+      EPStore.eliminarEvento(d.dataset.del)
+        .then(()=>{toast("Evento eliminado");render();})
+        .catch(err=>toast(err.message||"No se pudo eliminar el evento."));
     }
     return;
   }
   const card=e.target.closest(".ev");
   if(card&&!e.target.closest("a")){
     sel=card.dataset.id;
-    EPStore.fetchAsistentes(sel).then(render);
+    EPStore.fetchAsistentes(sel).then(render).catch(err=>{
+      toast(err.message||"No se pudieron cargar los asistentes.");
+    });
     render();
   }
 });
@@ -154,7 +160,8 @@ $("asistentes").addEventListener("click",e=>{
   const button=e.target.closest("[data-qr]");if(!button)return;
   const attendee=EPStore.getAsistente(button.dataset.qr),event=attendee&&EPStore.getEvento(attendee.eventoId);
   if(!attendee||!event)return;
-  const pinCode=attendee.pin||pin(attendee.id);
+  if(!attendee.pin){toast("El pase no tiene un PIN válido proporcionado por el servidor.");return}
+  const pinCode=attendee.pin;
   $("qr-card").innerHTML=`<div class="toolbar"><h2 id="qr-title" style="margin:0;font-size:1.1rem">Pase del asistente</h2><button class="btn-ghost btn-sm" type="button" data-qr-close aria-label="Cerrar modal">Cerrar</button></div>
     <div class="meta">${esc(event.nombre)}</div><h1>${esc(attendee.nombre)}</h1><div class="meta">CC ${esc(attendee.cedula)}</div>
     <div class="tear"></div><canvas id="qr-canvas" aria-label="Código QR del pase"></canvas>
@@ -183,7 +190,9 @@ $("btn-configuracion").onclick=()=>configModal.classList.add("open");
 $("close-configuracion").onclick=()=>configModal.classList.remove("open");
 configModal.addEventListener("click",e=>{if(e.target===configModal)configModal.classList.remove("open")});
 themeToggle.onchange=()=>{const theme=themeToggle.checked?"light":"dark";document.documentElement.dataset.theme=theme;localStorage.setItem("eventpass-theme",theme)};
-$("btn-logout").onclick=()=>{EPStore.logout();location.href="pages/login.html"};
+const logout=(e)=>{e.preventDefault();EPStore.logout();location.href="pages/login.html"};
+$("link-logout").addEventListener("click",logout);
+$("btn-logout").addEventListener("click",logout);
 
 addEventListener("keydown",e=>{if(e.key==="Escape"){setSidebar(false);$("modal").classList.remove("open");configModal.classList.remove("open");$("qr-modal").classList.remove("open")}});
 $("btn-nuevo").onclick=()=>{$("modal").classList.add("open");$("n").focus()};
@@ -213,8 +222,22 @@ $("modal").addEventListener("click",e=>{if(e.target===$("modal"))$("modal").clas
 
 EPStore.subscribe(render);
 render();
-EPStore.refreshEventos().then(()=>{
-  if(sel)EPStore.fetchAsistentes(sel).then(render);
+EPStore.refreshEventos().then(async()=>{
+  if(sel)await EPStore.fetchAsistentes(sel);
   render();
-});
+}).catch(err=>toast(err.message||"No se pudieron actualizar los eventos."));
+
+const refreshDashboard=async()=>{
+  try{
+    await EPStore.refreshEventos();
+    if(sel)await EPStore.fetchAsistentes(sel);
+    render();
+  }catch(err){
+    console.warn("[Dashboard] No se pudo actualizar la información:",err.message);
+  }finally{
+    setTimeout(refreshDashboard,8000);
+  }
+};
+setTimeout(refreshDashboard,8000);
+}
 </script></body></html>

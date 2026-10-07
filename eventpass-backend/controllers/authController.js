@@ -8,7 +8,7 @@ const { generarToken } = require('../middleware/auth');
 /** POST /api/auth/registro */
 async function registrar(req, res, next) {
   try {
-    const { nombre, email, password } = req.body;
+    const { nombre, empresa, email, password } = req.body;
 
     if (!nombre || !email || !password) {
       return res.status(400).json({ error: 'Nombre, correo y contraseña son obligatorios.' });
@@ -23,7 +23,7 @@ async function registrar(req, res, next) {
     }
 
     const passwordHash = await Admin.hashearPassword(password);
-    const admin = await Admin.create({ nombre, email, passwordHash });
+    const admin = await Admin.create({ nombre, empresa, email, passwordHash });
 
     const token = generarToken(admin._id);
     res.status(201).json({ token, admin });

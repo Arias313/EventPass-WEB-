@@ -28,14 +28,17 @@
   <div class="panel ticket" id="t"></div>
 </main>
 
-<script src="js/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="../js/qrcode.min.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/api-store.js"></script>
 <script src="../js/app.js"></script>
 <script>
-const {esc,param,toast,pin} = EPUtil;
-const t = document.getElementById("t");
+const ticketElement = document.getElementById("t");
+if (typeof EPStore === "undefined") {
+  ticketElement.innerHTML = `<p class="err" role="alert">No se cargó js/api-store.js, revisa la consola</p>`;
+} else {
+const {esc,param,toast} = EPUtil;
+const t = ticketElement;
 const ticketId = param("id");
 
 async function renderTicket() {
@@ -45,15 +48,25 @@ async function renderTicket() {
   }
 
   t.innerHTML = `<div class="empty">Buscando tu pase...</div>`;
-  const a = await EPStore.fetchAsistente(ticketId);
-  let ev = a && (typeof a.evento === "object" ? a.evento : await EPStore.fetchEvento(a.eventoId || a.evento));
+  let a, ev;
+  try {
+    a = await EPStore.fetchAsistente(ticketId);
+    ev = a && (typeof a.evento === "object" ? a.evento : await EPStore.fetchEvento(a.eventoId || a.evento));
+  } catch (error) {
+    t.innerHTML = `<h1>No se pudo cargar el pase</h1><p class="meta">${esc(error.message || "Comprueba tu conexión e inténtalo de nuevo.")}</p>`;
+    return;
+  }
 
   if(!a || !ev) {
     t.innerHTML = `<h1>Pase no encontrado</h1><p class="meta">Vuelve al link de registro del evento para generar uno.</p>`;
     return;
   }
 
-  const pinCode = a.pin || pin(a.id);
+  if (!a.pin) {
+    t.innerHTML = `<h1>Pase sin PIN válido</h1><p class="meta">El servidor no proporcionó un PIN de entrada. Contacta con la organización para verificar tu registro.</p>`;
+    return;
+  }
+  const pinCode = a.pin;
   const nombreEvento = ev.titulo || ev.nombre || "Evento";
   const lugarEvento = ev.lugar || ev.ubicacion || "";
   const fechaEvento = ev.fecha ? " · " + new Date(ev.fecha).toLocaleString("es-CO",{dateStyle:"medium",timeStyle:"short"}) : "";
@@ -163,6 +176,7 @@ async function renderTicket() {
   };
 }
 renderTicket();
+}
 </script>
 </body>
 </html>

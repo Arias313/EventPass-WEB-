@@ -24,11 +24,7 @@ async function registrarAsistente(req, res, next) {
   let aforoReservado = false;
   let eventoId;
   try {
-<<<<<<< HEAD
     eventoId = req.body.evento || req.body.eventoId || req.params.eventoId;
-=======
-    eventoId = req.body.evento || req.params.eventoId;
->>>>>>> a56a81421fdf70fcc25b35e662a63f3f9783c622
     const { nombre, cedula, empresa } = req.body;
     const correo = req.body.correo || req.body.email;
 
@@ -45,7 +41,7 @@ async function registrarAsistente(req, res, next) {
     const eventoReservado = await Evento.findOneAndUpdate(
       {
         _id: eventoId,
-        $expr: { $lt: [{ $ifNull: ['$registrados', 0] }, '$aforoTotal'] }
+        $expr: { $lt: [{$ifNull: ['$registrados', 0] }, '$aforoTotal'] }
       },
       { $inc: { registrados: 1 } },
       { new: true }
@@ -136,7 +132,7 @@ async function estadisticasEvento(req, res, next) {
       Asistente.find({ evento: evento._id, estadoCheckin: true })
         .sort({ fechaCheckin: -1 })
         .limit(8)
-    ]);
+      ]);
 
     const pendientes = registrados - confirmados;
     const capacidad = evento.aforoTotal;
@@ -160,7 +156,6 @@ async function estadisticasEvento(req, res, next) {
  * Devuelve { status, asistente } — status: 'ok' | 'ya_registrado' | 'no_encontrado'
  */
 async function _resolverCheckin(eventoId, pinCrudo) {
-<<<<<<< HEAD
   const crudo = String(pinCrudo || '').trim();
   let pin = crudo.toUpperCase();
 
@@ -189,22 +184,21 @@ async function _resolverCheckin(eventoId, pinCrudo) {
     condiciones.push({ cedula });
   }
 
-  const asistente = await Asistente.findOne({
+  const filtro = {
     evento: eventoId,
     $or: condiciones
-  });
-=======
-  const pin = (pinCrudo || '').trim().toUpperCase();
-  const asistente = await Asistente.findOne({ evento: eventoId, pin });
->>>>>>> a56a81421fdf70fcc25b35e662a63f3f9783c622
+  };
 
-  if (!asistente) return { status: 'no_encontrado', asistente: null };
-  if (asistente.estadoCheckin) return { status: 'ya_registrado', asistente };
+  const asistente = await Asistente.findOneAndUpdate(
+    { ...filtro, estadoCheckin: { $ne: true } },
+    { $set: { estadoCheckin: true, fechaCheckin: new Date() } },
+    { new: true }
+  );
+  if (asistente) return { status: 'ok', asistente };
 
-  asistente.estadoCheckin = true;
-  asistente.fechaCheckin = new Date();
-  await asistente.save();
-  return { status: 'ok', asistente };
+  const yaRegistrado = await Asistente.findOne(filtro);
+  if (!yaRegistrado) return { status: 'no_encontrado', asistente: null };
+  return { status: 'ya_registrado', asistente: yaRegistrado };
 }
 
 /** POST /api/eventos/:eventoId/checkin — check-in en vivo desde el scanner (requiere login de staff/admin) */

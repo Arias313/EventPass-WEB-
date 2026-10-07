@@ -13,6 +13,11 @@ const adminSchema = new mongoose.Schema(
       trim: true,
       minlength: 2
     },
+    empresa: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     email: {
       type: String,
       required: [true, 'El correo es obligatorio'],

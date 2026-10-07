@@ -21,7 +21,11 @@
 <main class="wrap narrow"><div class="panel" id="box"></div></main>
 <script src="../js/config.js"></script><script src="../js/api-store.js"></script><script src="../js/app.js"></script>
 <script>
-const {esc,param}=EPUtil,box=document.getElementById("box"),id=param("evento");
+const box=document.getElementById("box");
+if (typeof EPStore === "undefined") {
+  box.innerHTML=`<p class="err" role="alert">No se cargó js/api-store.js, revisa la consola</p>`;
+} else {
+const {esc,param}=EPUtil,id=param("evento");
 
 async function init() {
   if (!id) {
@@ -37,10 +41,10 @@ async function init() {
     return;
   }
 
-  const o=EPStore.ocupacion(id),lleno=o.n>=o.aforo;
+  const o=EPStore.ocupacion(id),lleno=o.aforo!=null&&o.n>=o.aforo;
   box.innerHTML=`<h1 style="margin:0 0 4px">${esc(ev.nombre)}</h1>
   <p style="color:var(--color-muted-fog);margin:0 0 8px">${esc(ev.lugar)}${ev.fecha?" · "+new Date(ev.fecha).toLocaleString("es-CO",{dateStyle:"long",timeStyle:"short"}):""}</p>
-  <div class="bar"><i style="width:${o.pct}%"></i></div><small style="color:var(--color-muted-fog)">${o.aforo-o.n>0?(o.aforo-o.n)+" cupos disponibles":"Sin cupos disponibles"}</small>
+  <div class="bar"><i style="width:${o.pct}%"></i></div><small style="color:var(--color-muted-fog)">${o.aforo==null?"Aforo por confirmar":o.aforo-o.n>0?(o.aforo-o.n)+" cupos disponibles":"Sin cupos disponibles"}</small>
   <form id="f" novalidate>
     <label for="n">Nombre completo</label><input id="n" autocomplete="name" required>
     <label for="c">Cédula</label><input id="c" inputmode="numeric" required>
@@ -60,12 +64,15 @@ async function init() {
     try{
       er.textContent="Generando tu pase...";
       const a=await EPStore.registrar(id,{nombre,cedula,correo});
-      location.href="ticket.html?id="+(a.pin||a.id||a._id);
+      location.href="ticket.html?id="+encodeURIComponent(a.pin||a.id||a._id);
     } catch(x){
       er.textContent=x.message||"Error al registrarse";
     }
   };
 }
 
-init();
+init().catch(error=>{
+  box.innerHTML=`<h1>No se pudo cargar el evento</h1><p style="color:var(--color-muted-fog)">${esc(error.message||"Comprueba tu conexión e inténtalo de nuevo.")}</p>`;
+});
+}
 </script></body></html>

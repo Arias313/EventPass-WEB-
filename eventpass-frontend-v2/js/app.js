@@ -31,7 +31,7 @@
   });
 
   // 3. Control de Estado de Autenticación en la Landing Page
-  const isAdmin = sessionStorage.getItem("ep_admin") === "1";
+  const isAdmin = localStorage.getItem("ep_admin") === "1" || sessionStorage.getItem("ep_admin") === "1";
 
   // Botones para estado SIN SESIÓN
   const authLoggedOut = ["head-login", "head-register", "side-login", "side-register"]
@@ -54,6 +54,8 @@
     } else {
       sessionStorage.removeItem("ep_admin");
       sessionStorage.removeItem("ep_token");
+      localStorage.removeItem("ep_admin");
+      localStorage.removeItem("ep_token");
     }
     window.location.reload();
   };
@@ -74,10 +76,6 @@
   // 5. Utilidades globales (Incluyendo Generador de QR)
   window.EPUtil = {
     esc: s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])),
-    pin: id => {
-      const code = String(id).replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 8);
-      return code.length > 4 ? code.slice(0, 4) + "-" + code.slice(4) : code;
-    },
     renderQr(canvas, payload) {
       if (!canvas) return false;
       const context = canvas.getContext("2d");
