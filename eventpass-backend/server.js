@@ -5,11 +5,13 @@
 require('dotenv').config();
 
 const express = require('express');
+const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 
 const conectarDB = require('./config/db');
 const { noEncontrado, manejadorErrores } = require('./middleware/errores');
+const { limitadorGlobal } = require('./middleware/limiters');
 
 const authRoutes = require('./routes/authRoutes');
 const eventoRoutes = require('./routes/eventoRoutes');
@@ -17,12 +19,26 @@ const asistentePublicRoutes = require('./routes/asistentePublicRoutes');
 const syncRoutes = require('./routes/syncRoutes');
 
 const app = express();
-
-// ─── Middleware base ─────────────────────────────────────────
-const origenesPermitidos = (process.env.CORS_ORIGIN || '*')
+const esProduccion = process.env.NODE_ENV === 'production';
+const corsOrigin = process.env.CORS_ORIGIN;
+const origenesPermitidos = (corsOrigin || '*')
   .split(',')
   .map((s) => s.trim());
 
+if (esProduccion && (!corsOrigin || !corsOrigin.trim() || origenesPermitidos.includes('*'))) {
+  console.error('[CORS] En producción, CORS_ORIGIN debe contener una lista explícita de orígenes y no puede incluir "*".');
+  process.exit(1);
+}
+
+// ─── Seguridad base ──────────────────────────────────────────
+// Detrás de Render/Railway/Nginx hay 1 proxy: así req.ip es la IP real del cliente.
+// En local no hay proxy; el valor 1 no causa problemas.
+app.set('trust proxy', 1);
+
+// La API la consume un frontend en otro origen: permitimos leer sus respuestas.
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+// ─── CORS (se conserva tu lista de orígenes) ─────────────────
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || origenesPermitidos.includes('*')) {
@@ -30,7 +46,7 @@ app.use(cors({
     }
     if (
       origenesPermitidos.includes(origin) ||
-      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      (!esProduccion && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
     ) {
       return callback(null, true);
     }
@@ -38,13 +54,18 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
-app.use(morgan('dev'));
+
+// 100 kb: holgado para un lote de 200 check-ins offline, y aun así acotado.
+app.use(express.json({ limit: '100kb' }));
+app.use(morgan(esProduccion ? 'combined' : 'dev'));
 
 // ─── Rutas ────────────────────────────────────────────────────
+// Health antes del limitador global para que los monitores no consuman cuota.
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, servicio: 'eventpass-backend', hora: new Date().toISOString() });
 });
+
+app.use('/api', limitadorGlobal);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/eventos', eventoRoutes);

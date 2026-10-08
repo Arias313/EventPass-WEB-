@@ -200,10 +200,10 @@
       return data;
     },
 
-    registrarAdmin: async ({ nombre, empresa, email, password }) => {
+    registrarAdmin: async ({ nombre, empresa, email, password, codigoInvitacion }) => {
       const data = await request("/auth/registro", {
         method: "POST",
-        body: JSON.stringify({ nombre, empresa, email, password })
+        body: JSON.stringify({ nombre, empresa, email, password, codigoInvitacion })
       });
       guardarSesion(data);
       return data;

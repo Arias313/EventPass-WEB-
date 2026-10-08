@@ -4,10 +4,26 @@
 
 const Admin = require('../models/Admin');
 const { generarToken } = require('../middleware/auth');
+const crypto = require('crypto');
 
 /** POST /api/auth/registro */
 async function registrar(req, res, next) {
   try {
+    if (process.env.ADMIN_INVITE_CODE) {
+      const codigoInvitacion = req.body?.codigoInvitacion;
+      const codigoConfigurado = Buffer.from(process.env.ADMIN_INVITE_CODE);
+      const codigoRecibido = typeof codigoInvitacion === 'string'
+        ? Buffer.from(codigoInvitacion)
+        : Buffer.alloc(0);
+
+      if (
+        codigoConfigurado.length !== codigoRecibido.length ||
+        !crypto.timingSafeEqual(codigoConfigurado, codigoRecibido)
+      ) {
+        return res.status(403).json({ error: 'Código de invitación inválido.' });
+      }
+    }
+
     const { nombre, empresa, email, password } = req.body;
 
     if (!nombre || !email || !password) {

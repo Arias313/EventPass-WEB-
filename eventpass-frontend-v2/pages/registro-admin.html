@@ -176,6 +176,11 @@
         <input type="password" id="admin-pass" class="form-input" placeholder="••••••••" required />
       </div>
 
+      <div class="form-group">
+        <label for="admin-codigo-invitacion">Código de invitación</label>
+        <input type="text" id="admin-codigo-invitacion" class="form-input" autocomplete="one-time-code" />
+      </div>
+
       <div class="terms-group">
         <input type="checkbox" id="terms" required style="margin-top: 3px;" />
         <label for="terms" style="color: inherit; font-size: inherit; cursor: pointer;">
@@ -213,7 +218,8 @@
           nombre: document.getElementById('admin-nombre').value.trim(),
           empresa: document.getElementById('admin-empresa').value.trim(),
           email: document.getElementById('admin-email').value.trim(),
-          password: document.getElementById('admin-pass').value
+          password: document.getElementById('admin-pass').value,
+          codigoInvitacion: document.getElementById('admin-codigo-invitacion').value
         };
 
         try {

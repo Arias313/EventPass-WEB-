@@ -8,9 +8,10 @@ const router = express.Router({ mergeParams: true });
 
 const { registrarAsistente, listarAsistentes } = require('../controllers/asistenteController');
 const { protegerRuta } = require('../middleware/auth');
+const { limitadorRegistroAsistente } = require('../middleware/limiters');
 
 // Público: un asistente se auto-registra desde registro.html
-router.post('/', registrarAsistente);
+router.post('/', limitadorRegistroAsistente, registrarAsistente);
 
 // Protegido: solo el admin dueño del evento ve el listado completo (dashboard)
 router.get('/', protegerRuta, listarAsistentes);

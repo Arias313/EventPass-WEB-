@@ -9,8 +9,12 @@ const {
   registrarAsistente,
   obtenerAsistentePublico
 } = require('../controllers/asistenteController');
+const {
+  limitadorRegistroAsistente,
+  limitadorConsultaPase
+} = require('../middleware/limiters');
 
-router.post('/', registrarAsistente);
-router.get('/:id', obtenerAsistentePublico);
+router.post('/', limitadorRegistroAsistente, registrarAsistente);
+router.get('/:id', limitadorConsultaPase, obtenerAsistentePublico);
 
 module.exports = router;

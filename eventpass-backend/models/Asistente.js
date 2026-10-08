@@ -64,6 +64,9 @@ const asistenteSchema = new mongoose.Schema(
   }
 );
 
+// Garantiza la unicidad a nivel de base de datos
+asistenteSchema.index({ evento: 1, cedula: 1 }, { unique: true });
+
 // El PIN es la referencia pública y debe ser único en toda la colección.
 asistenteSchema.index({ pin: 1 }, { unique: true });
 

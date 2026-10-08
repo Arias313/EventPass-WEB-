@@ -9,8 +9,6 @@ function noEncontrado(req, res, next) {
 
 /** Middleware final de errores — traduce errores comunes de Mongoose a respuestas claras */
 function manejadorErrores(err, req, res, next) {
-  console.error('[Error]', err);
-
   // Errores de validación de Mongoose
   if (err.name === 'ValidationError') {
     const mensajes = Object.values(err.errors).map((e) => e.message);
@@ -28,7 +26,17 @@ function manejadorErrores(err, req, res, next) {
     return res.status(400).json({ error: `Identificador inválido: ${err.value}` });
   }
 
-  res.status(err.status || 500).json({ error: err.message || 'Error interno del servidor' });
+  const status = err.status || 500;
+  if (status >= 500) {
+    console.error('[Error]', err);
+    return res.status(status).json({
+      error: process.env.NODE_ENV === 'production'
+        ? 'Error interno del servidor.'
+        : err.message || 'Error interno del servidor.'
+    });
+  }
+
+  res.status(status).json({ error: err.message || 'Error en la solicitud.' });
 }
 
 module.exports = { noEncontrado, manejadorErrores };
