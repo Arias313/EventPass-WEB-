@@ -75,7 +75,9 @@ async function renderTicket() {
     <span class="logo-icon">◈</span><div class="meta">${esc(nombreEvento)}</div>
     <h1>${esc(a.nombre)}</h1><div class="meta">CC ${esc(a.cedula)}</div>
     <div class="tear"></div>
-    <canvas id="qr-canvas" aria-label="Código QR del pase" style="margin: 16px auto; border-radius: 8px;"></canvas>
+    <div class="qr-container" style="background: #ffffff; padding: 12px; border-radius: 12px; display: inline-block; margin: 16px auto; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
+      <canvas id="qr-canvas" aria-label="Código QR del pase" style="display: block; margin: 0 auto; border-radius: 0;"></canvas>
+    </div>
     <p id="qr-status" class="meta" role="status" aria-live="polite">Generando código QR…</p>
     <div class="pin-row">
       <div><span class="meta">PIN de entrada</span><strong class="pin-code" id="pin-code">${esc(pinCode)}</strong></div>
@@ -100,8 +102,9 @@ async function renderTicket() {
       return;
     }
     window.QRCode.toCanvas(cv, EPStore.qrPayload(a), {
-      width: 220,
-      margin: 2,
+      width: 240,
+      margin: 4,
+      errorCorrectionLevel: 'M',
       color: { dark: "#000000", light: "#ffffff" }
     }, error => error ? reject(error) : resolve());
   }).then(() => {

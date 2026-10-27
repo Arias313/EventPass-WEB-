@@ -99,7 +99,8 @@
           payload,
           {
             width: 240,
-            margin: 1,
+            margin: 4,
+            errorCorrectionLevel: 'M',
             color: { dark: "#020618", light: "#ffffff" }
           },
           err => {
