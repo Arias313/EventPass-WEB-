@@ -6,62 +6,104 @@
   <meta name="theme-color" content="#020618" />
   <title>EventPass — Registro de Organizador</title>
   <link rel="stylesheet" href="../css/main.css" />
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    /* Estilos enfocados en conversión (Minimalista) */
-    body {
-      background-color: var(--color-midnight-panel);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 0 20px;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    
-    .auth-header {
-      margin-top: 60px;
-      margin-bottom: 30px;
-      text-align: center;
-    }
-    
-    .auth-headline {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    
-    .auth-headline h1 {
-      font-size: 2.2rem;
-      color: var(--color-signal-white);
-      margin-bottom: 12px;
-      line-height: 1.2;
-    }
-    
-    .auth-headline h1 span {
-      color: var(--color-nuxt-signal);
-    }
-    
-    .auth-headline p {
-      font-size: 1rem;
-      color: var(--color-muted-fog);
+    :root {
+      --bg: #020618;
+      --color-midnight-panel: #0f172b;
+      --color-steel-outline: #314158;
+      --color-muted-fog: #90a1b9;
+      --color-signal-white: #f8fafc;
+      --color-deep-slate: #1d293d;
+      --color-nuxt-signal: #00dc82;
+      --danger: #ff637e;
     }
 
-    .auth-container {
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--color-signal-white);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .split-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    /* Columna Izquierda: Formulario */
+    .form-side {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 24px;
+      background: var(--bg);
+      position: relative;
+    }
+
+    .form-wrapper {
       width: 100%;
       max-width: 440px;
-      background: var(--color-deep-slate);
-      padding: 40px 32px;
-      border: 1px solid var(--color-steel-outline);
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      margin-bottom: 60px;
+    }
+
+    .auth-brand {
+      margin-bottom: 24px;
+    }
+
+    .auth-brand a {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .auth-brand .logo-icon {
+      color: var(--color-nuxt-signal);
+      font-size: 1.8rem;
+    }
+
+    .auth-brand .logo-text {
+      color: var(--color-signal-white);
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .auth-title {
+      margin-bottom: 24px;
+    }
+
+    .auth-title h1 {
+      font-size: 1.85rem;
+      color: var(--color-signal-white);
+      margin: 0 0 8px 0;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.25;
+    }
+
+    .auth-title h1 span {
+      color: var(--color-nuxt-signal);
+    }
+
+    .auth-title p {
+      font-size: 0.95rem;
+      color: var(--color-muted-fog);
+      margin: 0;
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
 
     .form-group label {
@@ -75,23 +117,24 @@
       padding: 12px 14px;
       background: var(--color-midnight-panel);
       border: 1px solid var(--color-steel-outline);
-      border-radius: 8px;
+      border-radius: 10px;
       color: var(--color-signal-white);
       font-size: 0.95rem;
       outline: none;
-      transition: border-color 0.2s ease;
+      transition: all 0.2s ease;
       box-sizing: border-box;
     }
 
     .form-input:focus {
       border-color: var(--color-nuxt-signal);
+      box-shadow: 0 0 0 3px rgba(0, 220, 130, 0.15);
     }
 
     .terms-group {
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      margin-bottom: 24px;
+      margin: 18px 0 20px;
       font-size: 0.8rem;
       color: var(--color-muted-fog);
       line-height: 1.4;
@@ -100,26 +143,60 @@
     .btn-submit {
       width: 100%;
       background: var(--color-nuxt-signal);
-      color: #000;
+      color: #02140c;
       border: none;
       padding: 14px;
       font-size: 1rem;
       font-weight: 700;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
-      transition: opacity 0.2s;
-      margin-bottom: 16px;
+      transition: filter 0.2s, transform 0.1s;
     }
 
     .btn-submit:hover {
-      opacity: 0.9;
+      filter: brightness(1.1);
+    }
+
+    .btn-submit:active {
+      transform: scale(0.99);
+    }
+
+    /* Separador "o continúa con" */
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      margin: 20px 0;
+      color: var(--color-muted-fog);
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: "";
+      flex: 1;
+      border-bottom: 1px solid var(--color-steel-outline);
+    }
+
+    .auth-divider span {
+      padding: 0 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.75rem;
+    }
+
+    /* Contenedor Google */
+    .google-auth-wrap {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      min-height: 44px;
     }
 
     .err {
-      color: #ff4d4d;
-      font-size: 0.9rem;
+      color: var(--danger);
+      font-size: 0.88rem;
       text-align: center;
-      margin-bottom: 15px;
+      margin-bottom: 14px;
       min-height: 20px;
     }
 
@@ -127,79 +204,232 @@
       text-align: center;
       font-size: 0.9rem;
       color: var(--color-muted-fog);
+      margin-top: 20px;
     }
 
     .auth-footer a {
-      color: var(--color-signal-white);
+      color: var(--color-nuxt-signal);
       text-decoration: underline;
       font-weight: 500;
+    }
+
+    /* Columna Derecha: Panel Decorativo / Visual */
+    .visual-side {
+      background: linear-gradient(135deg, #091224 0%, #032014 50%, #020618 100%);
+      border-left: 1px solid var(--color-steel-outline);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .visual-side::before {
+      content: "";
+      position: absolute;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(0, 220, 130, 0.16) 0%, transparent 70%);
+      top: 15%;
+      right: 10%;
+      pointer-events: none;
+    }
+
+    .visual-content {
+      max-width: 460px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .visual-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(0, 220, 130, 0.12);
+      border: 1px solid rgba(0, 220, 130, 0.3);
+      border-radius: 99px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-nuxt-signal);
+      margin-bottom: 20px;
+    }
+
+    .visual-content h2 {
+      font-size: 2.2rem;
+      line-height: 1.25;
+      color: var(--color-signal-white);
+      margin: 0 0 16px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .visual-content p {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--color-muted-fog);
+      margin: 0 0 32px 0;
+    }
+
+    .visual-card-preview {
+      background: rgba(15, 23, 43, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--color-steel-outline);
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .preview-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .preview-number {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--color-nuxt-signal);
+    }
+
+    .preview-label {
+      font-size: 0.8rem;
+      color: var(--color-muted-fog);
+    }
+
+    /* Ocultar en dispositivos móviles */
+    @media (max-width: 900px) {
+      .split-layout {
+        grid-template-columns: 1fr;
+      }
+      .visual-side {
+        display: none;
+      }
+      .form-side {
+        padding: 32px 20px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Logo Centrado (Funciona como botón de regreso al index) -->
-  <header class="auth-header">
-    <a href="../index.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px;">
-      <span style="color: var(--color-nuxt-signal); font-size: 2rem;">◈</span>
-      <span style="color: var(--color-signal-white); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px;">EventPass</span>
-    </a>
-  </header>
+  <div class="split-layout">
+    
+    <!-- Lado Izquierdo: Formulario -->
+    <main class="form-side">
+      <div class="form-wrapper">
 
-  <!-- Título Principal de Venta -->
-  <div class="auth-headline">
-    <h1>Crea, administra y controla <br> <span>tus eventos</span> en un solo lugar</h1>
-    <p>Registra tu organización para empezar a gestionar aforos.</p>
+        <header class="auth-brand">
+          <a href="../index.html">
+            <span class="logo-icon">◈</span>
+            <span class="logo-text">EventPass</span>
+          </a>
+        </header>
+
+        <div class="auth-title">
+          <h1>Crea tu cuenta <br><span>organizadora</span></h1>
+          <p>Comienza a registrar y validar aforos con tu equipo.</p>
+        </div>
+
+        <form id="form-registro-admin">
+          
+          <div class="form-group">
+            <label for="admin-nombre">Nombre completo</label>
+            <input type="text" id="admin-nombre" class="form-input" placeholder="Ej. Carlos Mendoza" required />
+          </div>
+
+          <div class="form-group">
+            <label for="admin-empresa">Organización o Empresa</label>
+            <input type="text" id="admin-empresa" class="form-input" placeholder="Ej. Eventos Latam" required />
+          </div>
+
+          <div class="form-group">
+            <label for="admin-email">Correo del trabajo</label>
+            <input type="email" id="admin-email" class="form-input" placeholder="admin@empresa.com" required />
+          </div>
+
+          <div class="form-group">
+            <label for="admin-pass">Contraseña</label>
+            <input type="password" id="admin-pass" class="form-input" placeholder="••••••••" required />
+          </div>
+
+          <div class="form-group">
+            <label for="admin-codigo-invitacion">Código de invitación</label>
+            <input type="text" id="admin-codigo-invitacion" class="form-input" placeholder="Opcional" autocomplete="one-time-code" />
+          </div>
+
+          <div class="terms-group">
+            <input type="checkbox" id="terms" required style="margin-top: 3px;" />
+            <label for="terms" style="color: inherit; font-size: inherit; cursor: pointer;">
+              Acepto las Condiciones del servicio y la Política de privacidad de EventPass.
+            </label>
+          </div>
+
+          <div class="err" id="registro-error" role="alert"></div>
+
+          <button type="submit" class="btn-submit">
+            REGISTRAR E INGRESAR
+          </button>
+
+        </form>
+
+        <!-- Separador -->
+        <div class="auth-divider">
+          <span>o continúa con</span>
+        </div>
+
+        <!-- Botón Oficial Google Identity -->
+        <div class="google-auth-wrap">
+          <div id="g_id_onload"
+               data-client_id="172034190755-khuslhn47kk57odvkpo065euadl0suoh.apps.googleusercontent.com"
+               data-context="signup"
+               data-ux_mode="popup"
+               data-callback="handleGoogleAuth"
+               data-auto_prompt="false"
+               data-itp_support="true">
+          </div>
+          <div class="g_id_signin"
+               data-type="standard"
+               data-shape="rectangular"
+               data-theme="filled_black"
+               data-text="signup_with"
+               data-size="large"
+               data-logo_alignment="left"
+               data-width="440">
+          </div>
+        </div>
+
+        <div class="auth-footer">
+          <p>¿Ya tienes una cuenta organizadora? <a href="login.html">Inicia sesión</a></p>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Lado Derecho: Panel Visual Decorativo (Se oculta en móvil) -->
+    <aside class="visual-side" aria-hidden="true">
+      <div class="visual-content">
+        <div class="visual-badge">◈ EventPass Ecosystem</div>
+        <h2>Gestión centralizada de eventos sin complicaciones</h2>
+        <p>Emite credenciales QR encriptadas, delega accesos a tu equipo de staff y visualiza métricas de ocupación en vivo con nuestra arquitectura cloud.</p>
+        
+        <div class="visual-card-preview">
+          <div class="preview-stat">
+            <span class="preview-number">100%</span>
+            <span class="preview-label">Control de Aforos</span>
+          </div>
+          <div class="preview-stat">
+            <span class="preview-number">0</span>
+            <span class="preview-label">Fraudes por Duplicidad</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
   </div>
-
-  <!-- Formulario Limpio -->
-  <main class="auth-container">
-    <form id="form-registro-admin">
-      
-      <div class="form-group">
-        <label for="admin-nombre">Nombre completo</label>
-        <input type="text" id="admin-nombre" class="form-input" placeholder="Ej. Carlos Mendoza" required />
-      </div>
-
-      <div class="form-group">
-        <label for="admin-empresa">Organización o Empresa</label>
-        <input type="text" id="admin-empresa" class="form-input" placeholder="Ej. Eventos Latam" required />
-      </div>
-
-      <div class="form-group">
-        <label for="admin-email">Correo del trabajo</label>
-        <input type="email" id="admin-email" class="form-input" placeholder="admin@empresa.com" required />
-      </div>
-
-      <div class="form-group">
-        <label for="admin-pass">Contraseña</label>
-        <input type="password" id="admin-pass" class="form-input" placeholder="••••••••" required />
-      </div>
-
-      <div class="form-group">
-        <label for="admin-codigo-invitacion">Código de invitación</label>
-        <input type="text" id="admin-codigo-invitacion" class="form-input" autocomplete="one-time-code" />
-      </div>
-
-      <div class="terms-group">
-        <input type="checkbox" id="terms" required style="margin-top: 3px;" />
-        <label for="terms" style="color: inherit; font-size: inherit; cursor: pointer;">
-          Estoy de acuerdo con las Condiciones de servicio y la Política de privacidad de EventPass.
-        </label>
-      </div>
-
-      <div class="err" id="registro-error" role="alert"></div>
-
-      <button type="submit" class="btn-submit">
-        REGISTRAR E INGRESAR
-      </button>
-
-    </form>
-
-    <div class="auth-footer">
-      <p style="margin-top: 20px;">¿Ya tienes una cuenta organizadora? <br> <a href="login.html">Inicia sesión aquí</a></p>
-    </div>
-  </main>
 
   <script src="../js/config.js"></script>
   <script src="../js/api-store.js"></script>
@@ -207,6 +437,25 @@
   <script>
     const registrationForm = document.getElementById('form-registro-admin');
     const registrationError = document.getElementById('registro-error');
+
+    // Callback para Google Identity Services
+    window.handleGoogleAuth = async (response) => {
+      const idToken = response.credential;
+      if (!idToken) return;
+      try {
+        registrationError.textContent = "Verificando con Google...";
+        if (typeof EPStore.loginGoogle === "function") {
+          await EPStore.loginGoogle(idToken);
+          window.location.href = "../index-administrador.html";
+        } else {
+          console.log("[Google Auth Token]", idToken.substring(0, 25) + "...");
+          registrationError.textContent = "Google Sign-In detectado (listo para conectar con API de producción).";
+        }
+      } catch (error) {
+        registrationError.textContent = error.message || "Error al autenticar con Google.";
+      }
+    };
+
     if (typeof EPStore === "undefined") {
       registrationError.textContent = "No se cargó js/api-store.js, revisa la consola";
       registrationForm.querySelector("button[type=submit]").disabled = true;

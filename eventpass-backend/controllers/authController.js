@@ -4,7 +4,10 @@
 
 const Admin = require('../models/Admin');
 const { generarToken } = require('../middleware/auth');
+const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
+
+const googleClient = new OAuth2Client();
 
 /** POST /api/auth/registro */
 async function registrar(req, res, next) {
@@ -75,6 +78,53 @@ async function login(req, res, next) {
   }
 }
 
+/** POST /api/auth/google — Login y auto-registro con Google Identity Services */
+async function loginGoogle(req, res, next) {
+  try {
+    const { idToken } = req.body;
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({ error: 'Falta el token de Google (idToken).' });
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: clientId || undefined
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return res.status(400).json({ error: 'Token de Google no contiene un correo válido.' });
+    }
+
+    const email = payload.email.toLowerCase();
+    const nombre = payload.name || payload.given_name || email.split('@')[0];
+    const empresa = payload.hd ? `Organización ${payload.hd}` : '';
+
+    // 1. Buscar si ya existe el organizador
+    let admin = await Admin.findOne({ email });
+
+    // 2. Si no existe, crear la cuenta automáticamente con hash aleatorio seguro
+    if (!admin) {
+      const passwordAleatorio = crypto.randomBytes(32).toString('hex');
+      const passwordHash = await Admin.hashearPassword(passwordAleatorio);
+      admin = await Admin.create({
+        nombre,
+        email,
+        empresa,
+        passwordHash
+      });
+    }
+
+    // 3. Emitir token JWT de EventPass
+    const token = generarToken(admin._id);
+    res.json({ token, admin: admin.toJSON() });
+  } catch (error) {
+    console.error('[Google Auth Error]', error.message);
+    res.status(401).json({ error: 'Token de Google inválido o expirado.' });
+  }
+}
+
 /** GET /api/auth/perfil — requiere token */
 async function perfil(req, res, next) {
   try {
@@ -86,4 +136,4 @@ async function perfil(req, res, next) {
   }
 }
 
-module.exports = { registrar, login, perfil };
+module.exports = { registrar, login, loginGoogle, perfil };

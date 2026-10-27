@@ -3,6 +3,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#020618"><link rel="manifest" href="../manifest.json">
 <title>Registro — EventPass</title><link rel="stylesheet" href="../css/main.css">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head><body>
 <header class="app-header">
   <div class="header-inner" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
@@ -46,14 +47,30 @@ async function init() {
   <p style="color:var(--color-muted-fog);margin:0 0 8px">${esc(ev.lugar)}${ev.fecha?" · "+new Date(ev.fecha).toLocaleString("es-CO",{dateStyle:"long",timeStyle:"short"}):""}</p>
   <div class="bar"><i style="width:${o.pct}%"></i></div><small style="color:var(--color-muted-fog)">${o.aforo==null?"Aforo por confirmar":o.aforo-o.n>0?(o.aforo-o.n)+" cupos disponibles":"Sin cupos disponibles"}</small>
   <form id="f" novalidate>
+    <!-- Honeypot invisible: los humanos no lo ven; los bots lo rellenan automáticamente -->
+    <div style="position:absolute;left:-9999px;opacity:0;pointer-events:none;width:0;height:0;" aria-hidden="true">
+      <input type="text" id="hp" name="_hp_website" tabindex="-1" autocomplete="off">
+    </div>
     <label for="n">Nombre completo</label><input id="n" autocomplete="name" required>
     <label for="c">Cédula</label><input id="c" inputmode="numeric" required>
     <label for="m">Correo electrónico</label><input id="m" type="email" autocomplete="email" required>
+    
+    <!-- Widget Cloudflare Turnstile (Sitekey de prueba: 1x00000000000000000000AA) -->
+    <div id="cf-turnstile-wrap" style="margin: 14px 0 6px; min-height: 65px; display: flex; justify-content: center;">
+      <div class="cf-turnstile" data-sitekey="1x00000000000000000000AA" data-theme="dark"></div>
+    </div>
+    
     <div class="err" id="e"></div>
     <button class="btn-primary" ${lleno?"disabled":""}>${lleno?"Evento lleno":"Obtener mi Pase QR"}</button>
   </form>`;
 
-  const form=document.getElementById("f"),nameInput=document.getElementById("n"),idInput=document.getElementById("c"),emailInput=document.getElementById("m"),error=document.getElementById("e");
+  const form=document.getElementById("f"),nameInput=document.getElementById("n"),idInput=document.getElementById("c"),emailInput=document.getElementById("m"),error=document.getElementById("e"),hpInput=document.getElementById("hp");
+  
+  // Renderizar widget explícitamente si Turnstile cargó antes de la inyección del DOM
+  if(window.turnstile && typeof window.turnstile.render === "function") {
+    try { window.turnstile.render("#cf-turnstile-wrap .cf-turnstile"); } catch(_) {}
+  }
+
   form.addEventListener("input",()=>{error.textContent=""});
   form.onsubmit=async e=>{
     e.preventDefault();
@@ -61,12 +78,24 @@ async function init() {
     if(nombre.length<3)return er.textContent="Escribe tu nombre completo.";
     if(cedula.length<5||cedula.length>12)return er.textContent="La cédula debe tener entre 5 y 12 dígitos.";
     if(!/^\S+@\S+\.\S+$/.test(correo))return er.textContent="Escribe un correo válido.";
+    
+    const turnstileField=form.querySelector('[name="cf-turnstile-response"]');
+    const turnstileToken=turnstileField?turnstileField.value:"";
+    const _hp_website=hpInput?hpInput.value.trim():"";
+
+    if(!turnstileToken){
+      return er.textContent="Por favor, completa la verificación de seguridad.";
+    }
+
     try{
       er.textContent="Generando tu pase...";
-      const a=await EPStore.registrar(id,{nombre,cedula,correo});
+      const a=await EPStore.registrar(id,{nombre,cedula,correo,turnstileToken,_hp_website});
       location.href="ticket.html?id="+encodeURIComponent(a.pin||a.id||a._id);
     } catch(x){
       er.textContent=x.message||"Error al registrarse";
+      if(window.turnstile && typeof window.turnstile.reset === "function") {
+        try { window.turnstile.reset(); } catch(_) {}
+      }
     }
   };
 }

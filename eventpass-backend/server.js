@@ -73,9 +73,10 @@ if (esProduccion) {
 // Detrás de Render/Railway/Nginx hay 1 proxy: así req.ip es la IP real del cliente.
 app.set('trust proxy', 1);
 
-// Permitir recursos cross-origin y habilitar scripts/canvas para la PWA
+// Permitir recursos cross-origin, scripts/canvas para la PWA y popups de Google Identity
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   contentSecurityPolicy: false
 }));
 
@@ -91,12 +92,12 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // En desarrollo local permitir localhost y 127.0.0.1 en cualquier puerto
-    if (!esProduccion && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    // Permitir siempre orígenes locales de desarrollo (Live Server en 5500, Vite, etc.)
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
       return callback(null, true);
     }
 
-    // Coincidencia exacta con lista de orígenes autorizados
+    // Coincidencia con lista de orígenes autorizados en CORS_ORIGIN
     if (origenesPermitidos.includes(origin)) {
       return callback(null, true);
     }
@@ -167,7 +168,11 @@ async function iniciar() {
   try {
     await conectarDB();
     app.listen(PORT, HOST, () => {
-      console.log(`[Server] EventPass API escuchando en http://${HOST}:${PORT}`);
+      const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+      console.log(`[Server] EventPass API escuchando en http://${displayHost}:${PORT} (o http://127.0.0.1:${PORT})`);
+      if (servirFrontend) {
+        console.log(`[Frontend] Abre la web en tu navegador: http://localhost:${PORT}`);
+      }
       console.log(`[Server] Modo: ${esProduccion ? 'PRODUCCIÓN' : 'DESARROLLO'}`);
     });
   } catch (error) {

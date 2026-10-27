@@ -6,90 +6,131 @@
   <meta name="theme-color" content="#020618">
   <title>Iniciar sesión — EventPass</title>
   <link rel="stylesheet" href="../css/main.css">
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    /* Estilos enfocados en conversión (Minimalista) */
-    body {
-      background-color: var(--color-midnight-panel);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 0 20px;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    
-    .auth-header {
-      margin-top: 60px;
-      margin-bottom: 30px;
-      text-align: center;
+    :root {
+      --bg: #020618;
+      --color-midnight-panel: #0f172b;
+      --color-steel-outline: #314158;
+      --color-muted-fog: #90a1b9;
+      --color-signal-white: #f8fafc;
+      --color-deep-slate: #1d293d;
+      --color-nuxt-signal: #00dc82;
+      --danger: #ff637e;
     }
 
-    .auth-container {
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--color-signal-white);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .split-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    /* Columna Izquierda: Formulario */
+    .form-side {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 24px;
+      background: var(--bg);
+      position: relative;
+    }
+
+    .form-wrapper {
       width: 100%;
       max-width: 440px;
-      background: var(--color-deep-slate);
-      padding: 40px 32px;
-      border: 1px solid var(--color-steel-outline);
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      margin-bottom: 60px;
-      box-sizing: border-box;
+    }
+
+    .auth-brand {
+      margin-bottom: 28px;
+    }
+
+    .auth-brand a {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .auth-brand .logo-icon {
+      color: var(--color-nuxt-signal);
+      font-size: 1.8rem;
+    }
+
+    .auth-brand .logo-text {
+      color: var(--color-signal-white);
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
     }
 
     .auth-title {
-      text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 26px;
     }
 
     .auth-title h1 {
-      font-size: 1.8rem;
+      font-size: 2rem;
       color: var(--color-signal-white);
-      margin: 0 0 12px 0;
+      margin: 0 0 8px 0;
+      font-weight: 700;
+      letter-spacing: -0.5px;
     }
 
     .auth-title p {
       font-size: 0.95rem;
-      color: var(--color-signal-white);
+      color: var(--color-muted-fog);
       margin: 0;
     }
-    
+
     .auth-title a {
       color: var(--color-nuxt-signal);
       text-decoration: none;
       font-weight: 500;
     }
-    
+
     .auth-title a:hover {
       text-decoration: underline;
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     .form-input {
       width: 100%;
-      padding: 14px;
+      padding: 13px 16px;
       background: var(--color-midnight-panel);
       border: 1px solid var(--color-steel-outline);
-      border-radius: 8px;
+      border-radius: 10px;
       color: var(--color-signal-white);
       font-size: 0.95rem;
       outline: none;
-      transition: border-color 0.2s ease;
+      transition: all 0.2s ease;
       box-sizing: border-box;
     }
 
     .form-input:focus {
       border-color: var(--color-nuxt-signal);
+      box-shadow: 0 0 0 3px rgba(0, 220, 130, 0.15);
     }
 
     .auth-options {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
       font-size: 0.85rem;
     }
 
@@ -110,67 +151,255 @@
     .btn-submit {
       width: 100%;
       background: var(--color-nuxt-signal);
-      color: #000;
+      color: #02140c;
       border: none;
       padding: 14px;
       font-size: 1rem;
       font-weight: 700;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
-      transition: opacity 0.2s;
+      transition: filter 0.2s, transform 0.1s;
     }
 
     .btn-submit:hover {
-      opacity: 0.9;
+      filter: brightness(1.1);
     }
-    
-    .err {
-      color: #ff4d4d;
-      font-size: 0.9rem;
+
+    .btn-submit:active {
+      transform: scale(0.99);
+    }
+
+    /* Separador "o continúa con" */
+    .auth-divider {
+      display: flex;
+      align-items: center;
       text-align: center;
-      margin-bottom: 15px;
+      margin: 20px 0;
+      color: var(--color-muted-fog);
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: "";
+      flex: 1;
+      border-bottom: 1px solid var(--color-steel-outline);
+    }
+
+    .auth-divider span {
+      padding: 0 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.75rem;
+    }
+
+    /* Contenedor Google */
+    .google-auth-wrap {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      min-height: 44px;
+    }
+
+    .err {
+      color: var(--danger);
+      font-size: 0.88rem;
+      text-align: center;
+      margin-bottom: 14px;
       min-height: 20px;
+    }
+
+    /* Columna Derecha: Panel Decorativo / Visual */
+    .visual-side {
+      background: linear-gradient(135deg, #091224 0%, #032014 50%, #020618 100%);
+      border-left: 1px solid var(--color-steel-outline);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .visual-side::before {
+      content: "";
+      position: absolute;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(0, 220, 130, 0.16) 0%, transparent 70%);
+      top: 15%;
+      right: 10%;
+      pointer-events: none;
+    }
+
+    .visual-content {
+      max-width: 460px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .visual-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(0, 220, 130, 0.12);
+      border: 1px solid rgba(0, 220, 130, 0.3);
+      border-radius: 99px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-nuxt-signal);
+      margin-bottom: 20px;
+    }
+
+    .visual-content h2 {
+      font-size: 2.2rem;
+      line-height: 1.25;
+      color: var(--color-signal-white);
+      margin: 0 0 16px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .visual-content p {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--color-muted-fog);
+      margin: 0 0 32px 0;
+    }
+
+    .visual-card-preview {
+      background: rgba(15, 23, 43, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--color-steel-outline);
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .preview-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .preview-number {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--color-nuxt-signal);
+    }
+
+    .preview-label {
+      font-size: 0.8rem;
+      color: var(--color-muted-fog);
+    }
+
+    /* Ocultar lado decorativo en móviles y tablets */
+    @media (max-width: 900px) {
+      .split-layout {
+        grid-template-columns: 1fr;
+      }
+      .visual-side {
+        display: none;
+      }
+      .form-side {
+        padding: 32px 20px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Logo Centrado -->
-  <header class="auth-header">
-    <a href="../index.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px;">
-      <span style="color: var(--color-nuxt-signal); font-size: 2rem;">◈</span>
-      <span style="color: var(--color-signal-white); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px;">EventPass</span>
-    </a>
-  </header>
-
-  <main class="auth-container">
+  <div class="split-layout">
     
-    <div class="auth-title">
-      <h1>Hola de nuevo</h1>
-      <p>¿Aún no tienes cuenta? <a href="registro-admin.html">Regístrate</a></p>
-    </div>
+    <!-- Lado Izquierdo: Formulario -->
+    <main class="form-side">
+      <div class="form-wrapper">
+        
+        <header class="auth-brand">
+          <a href="../index.html">
+            <span class="logo-icon">◈</span>
+            <span class="logo-text">EventPass</span>
+          </a>
+        </header>
 
-    <form id="f" novalidate>
-      <div class="form-group">
-        <input id="u" type="email" class="form-input" placeholder="Correo del trabajo" autocomplete="username" required>
-      </div>
-      
-      <div class="form-group">
-        <input id="p" type="password" class="form-input" placeholder="Contraseña" autocomplete="current-password" required>
-      </div>
+        <div class="auth-title">
+          <h1>Hola de nuevo</h1>
+          <p>¿Aún no tienes cuenta? <a href="registro-admin.html">Regístrate</a></p>
+        </div>
 
-      <div class="auth-options">
-        <label>
-          <input id="remember-session" type="checkbox"> Mantener la sesión iniciada
-        </label>
-        <a href="#" onclick="alert('Funcionalidad de recuperación en construcción para la V2'); return false;">¿Has olvidado tu contraseña?</a>
-      </div>
+        <form id="f" novalidate>
+          <div class="form-group">
+            <input id="u" type="email" class="form-input" placeholder="Correo del trabajo" autocomplete="username" required>
+          </div>
+          
+          <div class="form-group">
+            <input id="p" type="password" class="form-input" placeholder="Contraseña" autocomplete="current-password" required>
+          </div>
 
-      <div class="err" id="e"></div>
-      
-      <button type="submit" class="btn-submit">INICIAR SESIÓN</button>
-    </form>
-  </main>
+          <div class="auth-options">
+            <label>
+              <input id="remember-session" type="checkbox"> Mantener sesión iniciada
+            </label>
+            <a href="#" onclick="alert('Funcionalidad de recuperación en construcción para la V2'); return false;">¿Olvidaste tu contraseña?</a>
+          </div>
+
+          <div class="err" id="e"></div>
+          
+          <button type="submit" class="btn-submit">INICIAR SESIÓN</button>
+        </form>
+
+        <!-- Separador -->
+        <div class="auth-divider">
+          <span>o continúa con</span>
+        </div>
+
+        <!-- Botón Oficial Google Identity -->
+        <div class="google-auth-wrap">
+          <div id="g_id_onload"
+               data-client_id="172034190755-khuslhn47kk57odvkpo065euadl0suoh.apps.googleusercontent.com"
+               data-context="signin"
+               data-ux_mode="popup"
+               data-callback="handleGoogleAuth"
+               data-auto_prompt="false"
+               data-itp_support="true">
+          </div>
+          <div class="g_id_signin"
+               data-type="standard"
+               data-shape="rectangular"
+               data-theme="filled_black"
+               data-text="signin_with"
+               data-size="large"
+               data-logo_alignment="left"
+               data-width="440">
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Lado Derecho: Panel Visual Abstracto (Se oculta en móvil) -->
+    <aside class="visual-side" aria-hidden="true">
+      <div class="visual-content">
+        <div class="visual-badge">◈ Panel de Organizadores</div>
+        <h2>Control de aforo inteligente y pases en tiempo real</h2>
+        <p>Monitorea asistencia en vivo, valida credenciales QR al instante y administra el acceso a tus eventos masivos con total confianza.</p>
+        
+        <div class="visual-card-preview">
+          <div class="preview-stat">
+            <span class="preview-number">99.9%</span>
+            <span class="preview-label">Disponibilidad Cloud</span>
+          </div>
+          <div class="preview-stat">
+            <span class="preview-number">&lt; 150ms</span>
+            <span class="preview-label">Check-in Móvil</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
 
   <script src="../js/config.js"></script>
   <script src="../js/api-store.js"></script>
@@ -178,6 +407,25 @@
   <script>
     const loginForm = document.getElementById("f");
     const loginError = document.getElementById("e");
+
+    // Callback para Google Identity Services
+    window.handleGoogleAuth = async (response) => {
+      const idToken = response.credential;
+      if (!idToken) return;
+      try {
+        loginError.textContent = "Verificando con Google...";
+        if (typeof EPStore.loginGoogle === "function") {
+          await EPStore.loginGoogle(idToken);
+          window.location.href = "../index-administrador.html";
+        } else {
+          console.log("[Google Auth Token]", idToken.substring(0, 25) + "...");
+          loginError.textContent = "Google Sign-In detectado (listo para conectar con API de producción).";
+        }
+      } catch (error) {
+        loginError.textContent = error.message || "Error al autenticar con Google.";
+      }
+    };
+
     if (typeof EPStore === "undefined") {
       loginError.textContent = "No se cargó js/api-store.js, revisa la consola";
       loginForm.querySelector("button[type=submit]").disabled = true;

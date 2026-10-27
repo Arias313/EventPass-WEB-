@@ -13,8 +13,9 @@ const {
   limitadorRegistroAsistente,
   limitadorConsultaPase
 } = require('../middleware/limiters');
+const { validarAntiBot } = require('../middleware/antibot');
 
-router.post('/', limitadorRegistroAsistente, registrarAsistente);
+router.post('/', limitadorRegistroAsistente, validarAntiBot, registrarAsistente);
 router.get('/:id', limitadorConsultaPase, obtenerAsistentePublico);
 
 module.exports = router;

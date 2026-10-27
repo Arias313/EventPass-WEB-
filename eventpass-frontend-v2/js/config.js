@@ -53,6 +53,7 @@
     CHANNEL: "eventpass_live",
     API_BASE: resolvedApiBase,
     IS_LOCAL: isLocal,
+    GOOGLE_CLIENT_ID: "172034190755-khuslhn47kk57odvkpo065euadl0suoh.apps.googleusercontent.com",
 
     /**
      * Permite reconfigurar la URL de la API dinámicamente desde consola o UI

@@ -8,6 +8,7 @@
   <link rel="manifest" href="../manifest.json">
   <title>Tu pase — EventPass</title>
   <link rel="stylesheet" href="../css/main.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <header class="app-header">
@@ -84,9 +85,14 @@ async function renderTicket() {
       <button class="btn-secondary btn-sm" id="copy-pin" type="button">Copiar PIN</button>
     </div>
     <p class="meta">${esc(lugarEvento)}${esc(fechaEvento)}<br>Pase ${esc(a.pin || a.id)}</p>
-    <div class="no-print row" style="justify-content:center; gap: 8px; margin-top: 16px;">
-      <button class="btn-primary btn-sm" id="dl" type="button" disabled>Descargar QR</button>
-      <button class="btn-secondary btn-sm" id="pwa">Guardar en inicio</button>
+    <div class="no-print" style="margin-top: 18px;">
+      <button class="btn-primary" id="btn-pdf" type="button" disabled style="width: 100%; margin-bottom: 10px; font-weight: 700;">
+        Descargar Comprobante Oficial (PDF)
+      </button>
+      <div class="row" style="justify-content: center; gap: 8px;">
+        <button class="btn-secondary btn-sm" id="dl" type="button" disabled>Descargar QR (PNG)</button>
+        <button class="btn-secondary btn-sm" id="pwa">Guardar en inicio</button>
+      </div>
     </div>
     <a href="../index.html" class="btn-secondary no-print" style="display: block; width: 100%; text-align: center; margin-top: 24px; padding: 12px; text-decoration: none; border-radius: 8px; box-sizing: border-box;">
       ← Volver al inicio
@@ -96,6 +102,7 @@ async function renderTicket() {
   const cv = document.getElementById("qr-canvas");
   const qrStatus = document.getElementById("qr-status");
   const downloadButton = document.getElementById("dl");
+  const pdfButton = document.getElementById("btn-pdf");
   const qrPromise = new Promise((resolve, reject) => {
     if (!window.QRCode || typeof window.QRCode.toCanvas !== "function") {
       reject(new Error("La librería QRCode.js no está disponible."));
@@ -110,6 +117,7 @@ async function renderTicket() {
   }).then(() => {
     qrStatus.hidden = true;
     downloadButton.disabled = false;
+    if (pdfButton) pdfButton.disabled = false;
   }).catch(error => {
     console.error("Error generando QR:", error);
     qrStatus.textContent = "No se pudo generar el QR. Comprueba tu conexión e inténtalo de nuevo.";
@@ -140,6 +148,131 @@ async function renderTicket() {
   document.getElementById("copy-pin").addEventListener("click", async () => {
     if (await copyText(pinCode)) toast("PIN copiado");
     else prompt("Copia el PIN:", pinCode);
+  });
+
+  // Generador de Voucher PDF Oficial
+  pdfButton.addEventListener("click", async () => {
+    await qrPromise;
+    if (pdfButton.disabled) return;
+
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      toast("Cargando motor PDF, reintenta en un segundo...");
+      return;
+    }
+
+    try {
+      pdfButton.disabled = true;
+      pdfButton.textContent = "Generando PDF...";
+
+      const { jsPDF } = window.jspdf;
+      // Formato vertical tipo credencial (105mm x 175mm)
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [105, 175]
+      });
+
+      // 1. Cabecera institucional
+      doc.setFillColor(2, 6, 24);
+      doc.rect(0, 0, 105, 26, "F");
+
+      doc.setFillColor(0, 220, 130);
+      doc.rect(0, 26, 105, 2, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(15);
+      doc.setTextColor(255, 255, 255);
+      doc.text("EventPass", 52.5, 12, { align: "center" });
+
+      doc.setFontSize(7.5);
+      doc.setTextColor(0, 220, 130);
+      doc.text("COMPROBANTE OFICIAL DE ACCESO", 52.5, 19, { align: "center" });
+
+      // 2. Información del Evento
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(15, 23, 42);
+      const tituloLineas = doc.splitTextToSize(nombreEvento, 85);
+      doc.text(tituloLineas, 52.5, 35, { align: "center" });
+
+      let currentY = 35 + (tituloLineas.length * 5);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      if (lugarEvento) {
+        doc.text(lugarEvento, 52.5, currentY, { align: "center" });
+        currentY += 4.5;
+      }
+      if (fechaEvento) {
+        doc.text(fechaEvento.replace(/^ · /, ""), 52.5, currentY, { align: "center" });
+        currentY += 5;
+      }
+
+      // 3. Tarjeta de Asistente
+      const cardY = Math.max(currentY + 2, 50);
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(203, 213, 225);
+      doc.roundedRect(10, cardY, 85, 28, 3, 3, "FD");
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("DATOS DEL ASISTENTE", 15, cardY + 6.5);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(doc.splitTextToSize(a.nombre || "Asistente", 75), 15, cardY + 12.5);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Cédula: CC ${a.cedula || "No registrada"}`, 15, cardY + 18.5);
+      if (a.correo || a.email) {
+        doc.text(`Correo: ${a.correo || a.email}`, 15, cardY + 23.5);
+      }
+
+      // 4. Código QR Centrado
+      const qrY = cardY + 31;
+      const qrDataUrl = cv.toDataURL("image/png");
+      doc.addImage(qrDataUrl, "PNG", 29.5, qrY, 46, 46);
+
+      // 5. PIN de Entrada
+      const pinY = qrY + 49;
+      doc.setFillColor(241, 245, 249);
+      doc.setDrawColor(0, 220, 130);
+      doc.roundedRect(15, pinY, 75, 13, 2, 2, "FD");
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text("PIN DE VALIDACIÓN EN PUERTA", 52.5, pinY + 4.5, { align: "center" });
+
+      doc.setFont("courier", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(2, 6, 24);
+      doc.text(pinCode, 52.5, pinY + 10, { align: "center" });
+
+      // 6. Pie de Página
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.setTextColor(148, 163, 184);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(12, 159, 93, 159);
+
+      doc.text("Presenta este comprobante impreso o en tu pantalla en el acceso.", 52.5, 163, { align: "center" });
+      doc.text(`Emitido: ${new Date().toLocaleString("es-CO")} · ID: ${a.pin || a.id}`, 52.5, 167, { align: "center" });
+
+      const fileId = String(a.cedula || a.pin || "ticket").replace(/[^a-z0-9_-]/gi, "-");
+      doc.save(`voucher-eventpass-${fileId}.pdf`);
+      toast("Comprobante PDF descargado");
+    } catch (err) {
+      console.error("[PDF Error]", err);
+      toast("Error al generar el comprobante PDF");
+    } finally {
+      pdfButton.disabled = false;
+      pdfButton.textContent = "Descargar Comprobante Oficial (PDF)";
+    }
   });
 
   downloadButton.addEventListener("click", async () => {

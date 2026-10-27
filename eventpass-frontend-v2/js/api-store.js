@@ -51,7 +51,7 @@
     const apiBase = getApiBase();
     const url = endpoint.startsWith("http") ? endpoint : `${apiBase}${endpoint}`;
     const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-    const isAuthRequest = endpoint.startsWith("/auth/login") || endpoint.startsWith("/auth/registro");
+    const isAuthRequest = endpoint.startsWith("/auth/login") || endpoint.startsWith("/auth/registro") || endpoint.startsWith("/auth/google");
     const token = isAuthRequest ? "" : getToken();
     if (token && !headers["Authorization"]) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -217,6 +217,18 @@
       return data;
     },
 
+    loginGoogle: async (idToken, recordar = true) => {
+      const data = await request("/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ idToken })
+      });
+      guardarSesion(data, recordar);
+      await refreshFromBackend().catch(err => {
+        console.warn("[EPStore] No se pudieron cargar los eventos tras autenticar con Google:", err.message);
+      });
+      return data;
+    },
+
     logout: () => {
       sessionStorage.removeItem("ep_token");
       sessionStorage.removeItem("ep_admin");
@@ -344,10 +356,10 @@
       return window.EPStore.getAsistente(id);
     },
 
-    registrar: async (eventoId, { nombre, cedula, correo, empresa }) => {
+    registrar: async (eventoId, datos) => {
       const data = await request("/asistentes", {
         method: "POST",
-        body: JSON.stringify({ eventoId, nombre, cedula, correo, empresa })
+        body: JSON.stringify({ eventoId, ...datos })
       });
       const a = normalizarAsistente(data.asistente);
       if (!a || !a.id) throw new Error("El servidor no devolvió los datos del pase.");
