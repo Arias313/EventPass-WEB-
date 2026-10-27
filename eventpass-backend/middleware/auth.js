@@ -19,16 +19,24 @@ function protegerRuta(req, res, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.adminId = payload.adminId;
+    req.adminRol = payload.rol || 'admin';
     next();
   } catch (error) {
     return res.status(401).json({ error: 'Token inválido o expirado.' });
   }
 }
 
-function generarToken(adminId) {
-  return jwt.sign({ adminId }, process.env.JWT_SECRET, {
+function exigirAdmin(req, res, next) {
+  if (req.adminRol !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado. Se requieren permisos de administrador.' });
+  }
+  next();
+}
+
+function generarToken(adminId, rol = 'admin') {
+  return jwt.sign({ adminId, rol }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 }
 
-module.exports = { protegerRuta, generarToken };
+module.exports = { protegerRuta, exigirAdmin, generarToken };

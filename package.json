@@ -1,0 +1,25 @@
+{
+  "name": "eventpass-web-ecosystem",
+  "version": "1.0.0",
+  "description": "Ecosistema EventPass — Backend API REST y Frontend Web PWA",
+  "scripts": {
+    "postinstall": "npm --prefix eventpass-backend install",
+    "dev": "npm --prefix eventpass-backend run dev",
+    "start": "npm --prefix eventpass-backend start",
+    "seed": "npm --prefix eventpass-backend run seed",
+    "install:all": "npm --prefix eventpass-backend install"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "eventpass",
+    "events",
+    "qr",
+    "checkin",
+    "express",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "ISC"
+}

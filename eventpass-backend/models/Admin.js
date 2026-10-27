@@ -30,6 +30,16 @@ const adminSchema = new mongoose.Schema(
       type: String,
       required: true,
       select: false // nunca se devuelve por defecto en las consultas
+    },
+    rol: {
+      type: String,
+      enum: ['admin', 'staff'],
+      default: 'admin'
+    },
+    creadoPor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+      default: null
     }
   },
   { timestamps: true }

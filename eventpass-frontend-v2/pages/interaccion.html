@@ -2,26 +2,194 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Interacción de App — EventPass</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#020618" />
+  <link rel="manifest" href="../manifest.json" />
+  <title>Integración App Móvil — EventPass</title>
   <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .integration-container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+    .card-terminal { background: var(--color-deep-slate); border: 1px solid var(--color-steel-outline); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+    .code-block { background: var(--color-midnight-panel); border: 1px solid var(--color-steel-outline); border-radius: 8px; padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85rem; color: #a5d6ff; overflow-x: auto; }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .pill-green { background: rgba(0,220,130,0.15); color: var(--color-nuxt-signal); border: 1px solid rgba(0,220,130,0.3); }
+    .pill-yellow { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid rgba(234,179,8,0.3); }
+    .pill-red { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .terminal-output { margin-top: 14px; min-height: 80px; padding: 12px; border-radius: 6px; background: #010409; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all; }
+  </style>
 </head>
 <body style="background-color: var(--color-midnight-panel); color: var(--color-signal-white); display: flex; flex-direction: column; min-height: 100vh; margin: 0;">
 
-  <header class="auth-header" style="margin-top: 40px;">
-    <a href="../index.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px;">
-      <span style="color: var(--color-nuxt-signal); font-size: 2rem;">◈</span>
-      <span style="color: var(--color-signal-white); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px;">EventPass</span>
-    </a>
+  <!-- Encabezado Estándar EventPass -->
+  <header class="app-header">
+    <div class="header-inner" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
+      <a href="../index.html" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">EventPass</span>
+      </a>
+
+      <div class="header-nav-actions" style="display: flex; align-items: center; gap: 14px;">
+        <div id="connection-status" class="status-online" style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+          ● En línea
+        </div>
+        <a href="login.html" id="head-login" class="btn-secondary btn-sm">Iniciar Sesión</a>
+        <a href="../index-administrador.html" id="head-dashboard" class="btn-primary btn-sm hidden-auth">Dashboard</a>
+      </div>
+    </div>
   </header>
 
-  <main style="flex: 1; padding: 60px 20px; text-align: center;">
-    <h1 style="color: var(--color-nuxt-signal); margin-bottom: 16px;">Interacción de la App</h1>
-    <p style="color: var(--color-muted-fog); max-width: 500px; margin: 0 auto;">Documentación sobre el escáner nativo y la sincronización multidispositivo en construcción...</p>
+  <main class="integration-container">
+    <div style="margin-bottom: 24px;">
+      <span class="pill pill-green">Terminal Móvil Android &bull; Retrofit</span>
+      <h1 style="color: var(--color-signal-white); margin: 12px 0 6px; font-size: 1.8rem;">Integración del Escáner y Protocolo de Check-in</h1>
+      <p style="color: var(--color-muted-fog); margin: 0; line-height: 1.5;">
+        Especificación técnica y banco de pruebas del terminal de acceso. La app móvil opera como un capturador ciego: lee el código QR, envía el PIN al backend y renderiza la respuesta devuelta por MongoDB Atlas.
+      </p>
+    </div>
+
+    <!-- Simulador de Check-in en Vivo -->
+    <section class="card-terminal">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="margin: 0; font-size: 1.2rem; color: var(--color-nuxt-signal);">Consola Interactiva de Check-in</h2>
+        <span id="session-badge" class="pill pill-yellow">Comprobando sesión...</span>
+      </div>
+      <p style="color: var(--color-muted-fog); font-size: 0.9rem; margin-top: 0;">
+        Prueba la resolución atómica de pases usando tus credenciales de administrador directamente contra la API REST.
+      </p>
+
+      <form id="simulator-form" style="display: flex; flex-direction: column; gap: 12px;" novalidate>
+        <div>
+          <label for="event-select" style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--color-signal-white);">Selecciona un Evento:</label>
+          <select id="event-select" class="form-input" style="width: 100%; padding: 10px; background: var(--color-midnight-panel); border: 1px solid var(--color-steel-outline); border-radius: 6px; color: var(--color-signal-white);">
+            <option value="">Cargando tus eventos...</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="qr-input" style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--color-signal-white);">PIN o Payload QR (ej. EP-1A2B3C4D5E6F7081 o EP|Nombre|PIN):</label>
+          <input id="qr-input" class="form-input" placeholder="EP-XXXXXXXXXXXXXXXX" style="width: 100%; padding: 10px; background: var(--color-midnight-panel); border: 1px solid var(--color-steel-outline); border-radius: 6px; color: var(--color-signal-white);" required />
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 6px;">
+          <button type="submit" class="btn-primary btn-sm" id="btn-scan">Simular Check-in (POST /checkin)</button>
+          <button type="button" class="btn-secondary btn-sm" id="btn-test-health">Verificar API Health</button>
+        </div>
+      </form>
+
+      <div id="output-box" class="terminal-output" style="display: none;"></div>
+    </section>
+
+    <!-- Contratos de la API REST -->
+    <section class="card-terminal">
+      <h2 style="margin-top: 0; font-size: 1.15rem; color: var(--color-signal-white);">1. Check-in Individual en Tiempo Real</h2>
+      <p style="color: var(--color-muted-fog); font-size: 0.88rem;">Petición enviada inmediatamente por la app Android tras detectar un código QR con la cámara.</p>
+      <div class="code-block">POST /api/eventos/:eventoId/checkin
+Authorization: Bearer &lt;TOKEN_ADMIN_O_STAFF&gt;
+Content-Type: application/json
+
+{
+  "qrCode": "EP-7B1A2C3D4E5F6071"
+}</div>
+    </section>
+
+    <section class="card-terminal">
+      <h2 style="margin-top: 0; font-size: 1.15rem; color: var(--color-signal-white);">2. Sincronización en Lote (Offline Batch Sync)</h2>
+      <p style="color: var(--color-muted-fog); font-size: 0.88rem;">Despachada automáticamente cuando el dispositivo recupera la conexión a internet.</p>
+      <div class="code-block">POST /api/checkin/sync
+Authorization: Bearer &lt;TOKEN_STAFF&gt;
+Content-Type: application/json
+
+{
+  "checkins": [
+    {
+      "idLocal": "f18b3e80-72cb-42a1-a4b5-123456789abc",
+      "eventoId": "651f1234567890abcdef1234",
+      "qrCode": "EP-7B1A2C3D4E5F6071",
+      "timestampLocal": "2026-10-22T17:30:00.000Z"
+    }
+  ]
+}</div>
+    </section>
   </main>
 
-  <footer style="padding: 20px; text-align: center; border-top: 1px solid var(--color-steel-outline); color: var(--color-muted-fog); font-size: 0.85rem;">
-    © 2026 EventPass. Todos los derechos reservados.
+  <footer style="padding: 24px; text-align: center; border-top: 1px solid var(--color-steel-outline); color: var(--color-muted-fog); font-size: 0.85rem; margin-top: auto;">
+    EventPass &copy; 2026 &bull; Plataforma Centralizada &bull; Todos los derechos reservados.
   </footer>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api-store.js"></script>
+  <script src="../js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const select = document.getElementById("event-select");
+      const sessionBadge = document.getElementById("session-badge");
+      const form = document.getElementById("simulator-form");
+      const qrInput = document.getElementById("qr-input");
+      const output = document.getElementById("output-box");
+      const btnHealth = document.getElementById("btn-test-health");
+
+      const hasSession = localStorage.getItem("ep_admin") === "1" || sessionStorage.getItem("ep_admin") === "1";
+      if (!hasSession) {
+        sessionBadge.className = "pill pill-red";
+        sessionBadge.textContent = "Sin Sesión de Admin";
+        select.innerHTML = '<option value="">Inicia sesión en la plataforma para probar tus eventos</option>';
+      } else {
+        sessionBadge.className = "pill pill-green";
+        sessionBadge.textContent = "Sesión Activa";
+        try {
+          const eventos = await EPStore.refreshEventos();
+          if (eventos && eventos.length > 0) {
+            select.innerHTML = eventos.map(ev => 
+              `<option value="${ev.id}">${EPUtil.esc(ev.nombre)} (${ev.confirmados || 0}/${ev.aforo || '—'} confirmados)</option>`
+            ).join("");
+          } else {
+            select.innerHTML = '<option value="">No tienes eventos creados aún. Crea uno en el Dashboard.</option>';
+          }
+        } catch (err) {
+          select.innerHTML = '<option value="">Error al cargar eventos.</option>';
+        }
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const eventoId = select.value;
+        const pin = qrInput.value.trim();
+        if (!eventoId) {
+          alert("Debes seleccionar o especificar un ID de evento.");
+          return;
+        }
+        if (!pin) {
+          alert("Ingresa un código QR o PIN para simular.");
+          return;
+        }
+
+        output.style.display = "block";
+        output.textContent = `Enviando POST /api/eventos/${eventoId}/checkin con qrCode: "${pin}"...`;
+
+        try {
+          const res = await EPStore.checkin(eventoId, pin);
+          const statusText = res.status === "ok" 
+            ? "✓ INGRESO CONFIRMADO (200 OK)" 
+            : res.status === "ya_registrado" 
+              ? "⚠ PASE YA REGISTRADO ANTERIORMENTE (200 OK)" 
+              : "✖ PASE NO ENCONTRADO (404)";
+          output.textContent = `${statusText}\n\nRespuesta del Backend:\n` + JSON.stringify(res, null, 2);
+        } catch (err) {
+          output.textContent = `✖ ERROR EN CHECK-IN:\n${err.message}\n` + (err.status ? `Código HTTP: ${err.status}` : "");
+        }
+      });
+
+      btnHealth.addEventListener("click", async () => {
+        output.style.display = "block";
+        output.textContent = "Consultando GET /api/health...";
+        try {
+          const res = await EPStore.health();
+          output.textContent = "✓ API ONLINE (200 OK)\n" + JSON.stringify(res, null, 2);
+        } catch (err) {
+          output.textContent = "✖ API NO DISPONIBLE:\n" + err.message;
+        }
+      });
+    });
+  </script>
 </body>
 </html>

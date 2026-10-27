@@ -188,17 +188,21 @@ async function estadisticasEvento(req, res, next) {
 /**
  * Resuelve un check-in por PIN dentro de un evento.
  * Solo se acepta el PIN (directo o al final de un QR compuesto): nunca cédula ni _id.
+ * Permite timestamp específico (ej. check-in offline sincronizado a posteriori).
  * Devuelve { status, asistente } — status: 'ok' | 'ya_registrado' | 'no_encontrado'
  */
-async function _resolverCheckin(eventoId, pinCrudo) {
+async function _resolverCheckin(eventoId, pinCrudo, timestampCheckin) {
   const pin = _extraerPin(pinCrudo);
   if (!PIN_REGEX.test(pin)) return { status: 'no_encontrado', asistente: null };
 
   const filtro = { evento: eventoId, pin };
+  const fecha = (timestampCheckin && !isNaN(new Date(timestampCheckin).getTime()))
+    ? new Date(timestampCheckin)
+    : new Date();
 
   const asistente = await Asistente.findOneAndUpdate(
     { ...filtro, estadoCheckin: { $ne: true } },
-    { $set: { estadoCheckin: true, fechaCheckin: new Date() } },
+    { $set: { estadoCheckin: true, fechaCheckin: fecha } },
     { new: true }
   );
   if (asistente) return { status: 'ok', asistente };
@@ -217,10 +221,10 @@ async function checkin(req, res, next) {
 
     const qrCode = req.body.qrCode || req.body.pin;
     if (typeof qrCode !== 'string' || !qrCode.trim()) {
-      return res.status(400).json({ error: 'Falta el código QR.' });
+      return res.status(400).json({ error: 'Falta el código QR o PIN.' });
     }
 
-    const resultado = await _resolverCheckin(evento._id, qrCode);
+    const resultado = await _resolverCheckin(evento._id, qrCode, req.body.timestamp || req.body.timestampLocal);
     const codigoHttp = resultado.status === 'no_encontrado' ? 404 : 200;
     res.status(codigoHttp).json(resultado);
   } catch (error) {
@@ -231,7 +235,7 @@ async function checkin(req, res, next) {
 /**
  * POST /api/checkin/sync — sincroniza en lote check-ins hechos offline.
  * Body: { checkins: [{ idLocal, eventoId, qrCode, timestampLocal }] }
- * Devuelve el resultado de cada uno para que el cliente sepa qué borrar de IndexedDB.
+ * Devuelve el resultado de cada uno para que el cliente sepa qué borrar de SQLite/IndexedDB.
  */
 async function sincronizarCheckins(req, res, next) {
   try {
@@ -243,21 +247,34 @@ async function sincronizarCheckins(req, res, next) {
       return res.status(413).json({ error: `Máximo ${MAX_CHECKINS_POR_LOTE} check-ins por lote.` });
     }
 
+    const cachePermisos = new Map();
     const resultados = [];
+
     for (const item of checkins) {
       const idLocal = item && item.idLocal;
-      const qrCode = item && item.qrCode;
+      const qrCode = item && (item.qrCode || item.pin);
       try {
-        if (!item || typeof item !== 'object') {
+        if (!item || typeof item !== 'object' || !item.eventoId || !qrCode) {
           resultados.push({ idLocal, status: 'invalido', qrCode });
           continue;
         }
-        const { error } = await _buscarEventoConPermiso(item.eventoId, req.adminId);
-        if (error) {
-          resultados.push({ idLocal, status: error, qrCode });
+
+        const evId = String(item.eventoId);
+        let errorPermiso = null;
+        if (cachePermisos.has(evId)) {
+          errorPermiso = cachePermisos.get(evId);
+        } else {
+          const resPermiso = await _buscarEventoConPermiso(evId, req.adminId);
+          errorPermiso = resPermiso.error;
+          cachePermisos.set(evId, errorPermiso);
+        }
+
+        if (errorPermiso) {
+          resultados.push({ idLocal, status: errorPermiso, qrCode });
           continue;
         }
-        const resultado = await _resolverCheckin(item.eventoId, qrCode);
+
+        const resultado = await _resolverCheckin(evId, qrCode, item.timestampLocal || item.timestamp);
         resultados.push({ idLocal, qrCode, ...resultado });
       } catch (errorItem) {
         console.error('[sync] Error procesando check-in:', errorItem);

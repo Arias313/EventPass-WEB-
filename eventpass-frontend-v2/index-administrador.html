@@ -2,6 +2,7 @@
 <html lang="es"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#020618"><link rel="manifest" href="manifest.json">
+<meta name="eventpass-api-base" content="">
 <title>Dashboard — EventPass</title><link rel="stylesheet" href="css/main.css">
 <style>
   .sidebar-panel{position:fixed;top:0;left:-320px;width:min(300px,85vw);height:100vh;height:100dvh;overflow-y:auto;background:var(--color-midnight-panel);border-right:1px solid var(--color-steel-outline);z-index:1000;transition:left .3s cubic-bezier(.4,0,.2,1);padding:28px 24px;box-shadow:10px 0 30px rgba(0,0,0,.35)}
@@ -120,20 +121,36 @@ const formatDate=value=>{if(!value)return "Sin fecha";const date=new Date(value)
 function render(){
   const s=EPStore.stats(),evs=EPStore.listarEventos();
   if(!evs.find(e=>e.id===sel))sel=evs[0]?evs[0].id:null;
-  $("stats").innerHTML=[["Eventos",s.eventos],["Registrados",s.registrados],["Aforo total",s.aforo],["Ocupación",s.ocupacion+"%"]]
+  $("stats").innerHTML=[["Eventos",s.eventos],["Registrados",s.registrados],["Confirmados",s.confirmados],["Aforo total",s.aforo],["Ocupación",s.ocupacion+"%"]]
     .map(([l,v])=>`<div class="panel stat"><b>${v}</b><span>${l}</span></div>`).join("");
   $("eventos").innerHTML=evs.length?evs.map(e=>{const o=EPStore.ocupacion(e.id);
     return `<article class="panel ev ${e.id===sel?"sel":""}" data-id="${e.id}">
       <h3>${esc(e.nombre)}</h3><div class="ev-meta"><span><b>Fecha</b><time>${esc(formatDate(e.fecha))}</time></span><span><b>Lugar</b><span>${esc(e.lugar)}</span></span></div>
-      <div class="bar"><i style="width:${o.pct}%"></i></div><small>${o.n} de ${o.aforo ?? "—"} cupos (${o.pct}%)</small>
+      <div class="bar"><i style="width:${o.pct}%"></i></div><small>${o.n} de ${o.aforo ?? "—"} cupos (${o.pct}%) · ${e.confirmados || 0} confirmados</small>
       <div class="row"><button class="btn-secondary btn-sm" data-copy="${e.id}">Copiar Link de Registro</button>
       <a class="btn-ghost btn-sm" href="pages/registro.html?evento=${e.id}" target="_blank">Abrir</a>
       <button class="btn-ghost btn-sm" data-del="${e.id}">Eliminar</button></div></article>`}).join("")
     :`<div class="panel empty" style="grid-column:1/-1">Aún no tienes eventos. Crea el primero con “+ Crear Evento”.</div>`;
   const ev=EPStore.getEvento(sel),as=ev?EPStore.getAsistentes(sel):[];
   $("att-title").textContent=ev?"Asistentes · "+ev.nombre:"Asistentes";
-  $("asistentes").innerHTML=as.length?`<table><thead><tr><th>Nombre</th><th>Cédula</th><th>Correo</th><th>Registro</th><th>Pase</th></tr></thead><tbody>`+
-    as.map(a=>`<tr><td>${esc(a.nombre)}</td><td>${esc(a.cedula)}</td><td>${esc(a.correo)}</td><td>${new Date(a.ts).toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})}</td><td><button class="btn-ghost btn-sm" type="button" data-qr="${esc(a.id)}">Ver QR</button></td></tr>`).join("")+`</tbody></table>`
+  $("asistentes").innerHTML=as.length?`<table><thead><tr><th>Nombre</th><th>Cédula</th><th>Correo</th><th>Registro</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>`+
+    as.map(a=>{
+      const isConfirmed = Boolean(a.estadoCheckin);
+      const badge = isConfirmed
+        ? `<span style="background:rgba(0,220,130,0.15);color:var(--color-nuxt-signal);padding:3px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;">✓ Ingresó</span>`
+        : `<span style="background:rgba(234,179,8,0.15);color:#eab308;padding:3px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;">Pendiente</span>`;
+      const btnCheckin = (!isConfirmed && a.pin)
+        ? `<button class="btn-primary btn-sm" type="button" data-checkin="${esc(a.pin)}" style="margin-right:6px;padding:3px 8px;font-size:0.75rem;">Check-in</button>`
+        : ``;
+      return `<tr>
+        <td>${esc(a.nombre)}</td>
+        <td>${esc(a.cedula)}</td>
+        <td>${esc(a.correo)}</td>
+        <td>${new Date(a.ts).toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})}</td>
+        <td>${badge}</td>
+        <td>${btnCheckin}<button class="btn-ghost btn-sm" type="button" data-qr="${esc(a.id)}">Ver QR</button></td>
+      </tr>`;
+    }).join("")+`</tbody></table>`
     :`<div class="empty">Los registros se actualizan automáticamente cada 8 segundos.</div>`;
 }
 $("eventos").addEventListener("click",e=>{
@@ -157,6 +174,31 @@ $("eventos").addEventListener("click",e=>{
   }
 });
 $("asistentes").addEventListener("click",e=>{
+  const btnCheckin=e.target.closest("[data-checkin]");
+  if(btnCheckin){
+    const pin=btnCheckin.dataset.checkin;
+    if(!sel||!pin)return;
+    btnCheckin.disabled=true;
+    btnCheckin.textContent="Validando...";
+    EPStore.checkin(sel, pin)
+      .then(res=>{
+        if(res.status==="ok"){
+          toast("✓ Check-in registrado");
+          render();
+        }else if(res.status==="ya_registrado"){
+          toast("⚠ Este pase ya había ingresado");
+          render();
+        }else{
+          toast("Pase no encontrado");
+          render();
+        }
+      })
+      .catch(err=>{
+        toast(err.message||"Error al procesar check-in");
+        render();
+      });
+    return;
+  }
   const button=e.target.closest("[data-qr]");if(!button)return;
   const attendee=EPStore.getAsistente(button.dataset.qr),event=attendee&&EPStore.getEvento(attendee.eventoId);
   if(!attendee||!event)return;

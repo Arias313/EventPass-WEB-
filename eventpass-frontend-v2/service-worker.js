@@ -2,8 +2,8 @@
 // SERVICE WORKER — EventPass PWA (v3)
 // ============================================================
 
-const CACHE_STATIC_NAME = 'eventpass-static-v5';
-const CACHE_DYNAMIC_NAME = 'eventpass-dynamic-v5';
+const CACHE_STATIC_NAME = 'eventpass-static-v6';
+const CACHE_DYNAMIC_NAME = 'eventpass-dynamic-v6';
 
 // Archivos que componen el App Shell (Cache de Instalación)
 const scope = self.registration.scope;
@@ -12,8 +12,12 @@ const STATIC_ASSETS = [
   new URL('index.html', scope).href,
   new URL('index-administrador.html', scope).href,
   new URL('pages/login.html', scope).href,
+  new URL('pages/registro-admin.html', scope).href,
   new URL('pages/registro.html', scope).href,
   new URL('pages/ticket.html', scope).href,
+  new URL('pages/caracteristicas.html', scope).href,
+  new URL('pages/interaccion.html', scope).href,
+  new URL('pages/soporte.html', scope).href,
   new URL('css/main.css', scope).href,
   new URL('js/app.js', scope).href,
   new URL('js/config.js', scope).href,
@@ -23,9 +27,10 @@ const STATIC_ASSETS = [
   new URL('icons/icon-512x512.png', scope).href
 ];
 
-// Prefijos de URL que NO deben pasar por la caché (se gestionan en la API o IndexedDB)
+// Prefijos de URL que NO deben pasar por la caché (se gestionan en la API de forma dinámica)
 const NEVER_CACHE = [
   '/api/',
+  '/health',
   '/checkin',
   '/dashboard/live'
 ];
@@ -83,9 +88,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 1. Peticiones de API / Backend -> Network First
+  // 1. Peticiones de API / Backend -> Directas a la red (sin interceptar ni almacenar en Cache API)
   if (NEVER_CACHE.some(path => url.pathname.includes(path))) {
-    event.respondWith(networkFirst(request));
     return;
   }
 

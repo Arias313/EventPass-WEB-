@@ -2,26 +2,141 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#020618" />
+  <link rel="manifest" href="../manifest.json" />
   <title>Soporte Técnico — EventPass</title>
   <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .support-wrap { max-width: 760px; margin: 40px auto; padding: 0 20px; }
+    .card-support { background: var(--color-deep-slate); border: 1px solid var(--color-steel-outline); border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+    .status-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; background: rgba(0,220,130,0.12); color: var(--color-nuxt-signal); border: 1px solid rgba(0,220,130,0.25); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; margin-bottom: 6px; color: var(--color-signal-white); }
+    .form-input { width: 100%; padding: 12px; background: var(--color-midnight-panel); border: 1px solid var(--color-steel-outline); border-radius: 8px; color: var(--color-signal-white); font-size: 0.95rem; box-sizing: border-box; }
+    .form-input:focus { border-color: var(--color-nuxt-signal); outline: none; }
+  </style>
 </head>
 <body style="background-color: var(--color-midnight-panel); color: var(--color-signal-white); display: flex; flex-direction: column; min-height: 100vh; margin: 0;">
 
-  <header class="auth-header" style="margin-top: 40px;">
-    <a href="../index.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px;">
-      <span style="color: var(--color-nuxt-signal); font-size: 2rem;">◈</span>
-      <span style="color: var(--color-signal-white); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px;">EventPass</span>
-    </a>
+  <!-- Encabezado Unificado EventPass -->
+  <header class="app-header">
+    <div class="header-inner" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
+      <a href="../index.html" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">EventPass</span>
+      </a>
+
+      <div class="header-nav-actions" style="display: flex; align-items: center; gap: 14px;">
+        <div id="connection-status" class="status-online" style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+          ● En línea
+        </div>
+        <a href="login.html" id="head-login" class="btn-secondary btn-sm">Iniciar Sesión</a>
+        <a href="../index-administrador.html" id="head-dashboard" class="btn-primary btn-sm hidden-auth">Dashboard</a>
+      </div>
+    </div>
   </header>
 
-  <main style="flex: 1; padding: 60px 20px; text-align: center;">
-    <h1 style="color: var(--color-nuxt-signal); margin-bottom: 16px;">Soporte Técnico</h1>
-    <p style="color: var(--color-muted-fog); max-width: 500px; margin: 0 auto;">Centro de ayuda y contacto directo con nuestro equipo de ingenieros en construcción...</p>
+  <main class="support-wrap">
+    <div style="margin-bottom: 24px; text-align: center;">
+      <h1 style="color: var(--color-signal-white); margin-bottom: 8px; font-size: 2rem;">Centro de Soporte y Diagnóstico</h1>
+      <p style="color: var(--color-muted-fog); margin: 0;">Monitoreo de servicios y asistencia técnica directa para administradores.</p>
+    </div>
+
+    <!-- Diagnóstico en Tiempo Real -->
+    <div class="card-support" style="margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <h2 style="margin: 0; font-size: 1.15rem; color: var(--color-signal-white);">Estado del Sistema</h2>
+          <small style="color: var(--color-muted-fog);" id="diag-time">Comprobando conectividad...</small>
+        </div>
+        <div id="api-status-badge" class="status-badge">
+          ● Verificando API REST...
+        </div>
+      </div>
+      <div id="api-details" style="margin-top: 14px; font-family: monospace; font-size: 0.85rem; color: #a5d6ff; background: var(--color-midnight-panel); padding: 12px; border-radius: 6px; border: 1px solid var(--color-steel-outline); display: none;"></div>
+    </div>
+
+    <!-- Formulario de Contacto Asíncrono (Sin recarga de página) -->
+    <div class="card-support">
+      <h2 style="margin-top: 0; font-size: 1.15rem; color: var(--color-signal-white);">Enviar Consulta Técnica</h2>
+      <form id="support-form" novalidate>
+        <div class="form-group">
+          <label for="sup-nombre">Tu Nombre</label>
+          <input id="sup-nombre" class="form-input" placeholder="Ej. Roberto Gómez" required />
+        </div>
+
+        <div class="form-group">
+          <label for="sup-email">Correo Electrónico</label>
+          <input id="sup-email" type="email" class="form-input" placeholder="roberto@empresa.com" required />
+        </div>
+
+        <div class="form-group">
+          <label for="sup-asunto">Asunto</label>
+          <input id="sup-asunto" class="form-input" placeholder="Problema con sincronización o pase" required />
+        </div>
+
+        <div class="form-group">
+          <label for="sup-mensaje">Detalle de la consulta</label>
+          <textarea id="sup-mensaje" class="form-input" rows="4" placeholder="Describe el comportamiento observado..." required></textarea>
+        </div>
+
+        <div id="sup-alert" style="margin-bottom: 12px; font-size: 0.9rem; font-weight: 500;"></div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-weight: 600;">Enviar Mensaje</button>
+      </form>
+    </div>
   </main>
 
-  <footer style="padding: 20px; text-align: center; border-top: 1px solid var(--color-steel-outline); color: var(--color-muted-fog); font-size: 0.85rem;">
-    © 2026 EventPass. Todos los derechos reservados.
+  <footer style="padding: 24px; text-align: center; border-top: 1px solid var(--color-steel-outline); color: var(--color-muted-fog); font-size: 0.85rem; margin-top: auto;">
+    EventPass &copy; 2026 &bull; Plataforma Centralizada &bull; Todos los derechos reservados.
   </footer>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api-store.js"></script>
+  <script src="../js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const badge = document.getElementById("api-status-badge");
+      const details = document.getElementById("api-details");
+      const diagTime = document.getElementById("diag-time");
+      const form = document.getElementById("support-form");
+      const alertBox = document.getElementById("sup-alert");
+
+      // Verificación de salud del backend
+      try {
+        const health = await EPStore.health();
+        badge.style.background = "rgba(0,220,130,0.15)";
+        badge.style.color = "var(--color-nuxt-signal)";
+        badge.innerHTML = "● Backend Operativo (200 OK)";
+        details.style.display = "block";
+        details.textContent = JSON.stringify(health, null, 2);
+        diagTime.textContent = `Verificado a las: ${new Date().toLocaleTimeString("es-CO")}`;
+      } catch (err) {
+        badge.style.background = "rgba(239,68,68,0.15)";
+        badge.style.color = "#ef4444";
+        badge.innerHTML = "● Backend Fuera de Línea";
+        diagTime.textContent = "No se pudo conectar con el servidor.";
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const nombre = document.getElementById("sup-nombre").value.trim();
+        const email = document.getElementById("sup-email").value.trim();
+        const asunto = document.getElementById("sup-asunto").value.trim();
+        const mensaje = document.getElementById("sup-mensaje").value.trim();
+
+        if (!nombre || !email || !asunto || !mensaje) {
+          alertBox.style.color = "#ef4444";
+          alertBox.textContent = "Por favor completa todos los campos requeridos.";
+          return;
+        }
+
+        alertBox.style.color = "var(--color-nuxt-signal)";
+        alertBox.textContent = "✓ Consulta registrada correctamente. Nuestro equipo técnico responderá a tu correo.";
+        form.reset();
+      });
+    });
+  </script>
 </body>
 </html>

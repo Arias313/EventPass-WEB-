@@ -2,28 +2,47 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#020618" />
+  <link rel="manifest" href="../manifest.json" />
   <title>EventPass — Información</title>
   <link rel="stylesheet" href="../css/main.css" />
 </head>
 <body style="background-color: var(--color-midnight-panel); color: var(--color-signal-white); display: flex; flex-direction: column; min-height: 100vh; margin: 0;">
 
-  <header class="app-header" style="padding: 12px 24px; border-bottom: 1px solid var(--color-steel-outline);">
-    <a href="../index.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
-      <span style="color: var(--color-nuxt-signal); font-size: 1.5rem;">◈</span>
-      <span style="color: white; font-weight: bold;">EventPass</span>
-    </a>
+  <!-- Encabezado Unificado EventPass -->
+  <header class="app-header">
+    <div class="header-inner" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
+      <a href="../index.html" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">EventPass</span>
+      </a>
+
+      <div class="header-nav-actions" style="display: flex; align-items: center; gap: 14px;">
+        <div id="connection-status" class="status-online" style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+          ● En línea
+        </div>
+        <a href="login.html" id="head-login" class="btn-secondary btn-sm">Iniciar Sesión</a>
+        <a href="../index-administrador.html" id="head-dashboard" class="btn-primary btn-sm hidden-auth">Dashboard</a>
+      </div>
+    </div>
   </header>
 
-  <main style="flex: 1; padding: 60px 20px; text-align: center;">
-    <!-- Cambia este título en cada página duplicada -->
+  <main style="flex: 1; padding: 60px 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box;">
     <h1 style="color: var(--color-nuxt-signal); margin-bottom: 16px;">Título de la Sección</h1>
-    <p style="color: var(--color-muted-fog);">Contenido en construcción...</p>
+    <div class="panel" style="background: var(--color-deep-slate); border: 1px solid var(--color-steel-outline); border-radius: 12px; padding: 24px;">
+      <p style="color: var(--color-muted-fog); line-height: 1.6; margin-top: 0;">
+        Esta plantilla base implementa la integración estandarizada con <code>EPStore</code>, soporte PWA y el encabezado reactivo con detección de sesión.
+      </p>
+    </div>
   </main>
 
-  <footer style="padding: 20px; text-align: center; border-top: 1px solid var(--color-steel-outline); color: var(--color-muted-fog); font-size: 0.85rem;">
-    © 2026 EventPass. Todos los derechos reservados.
+  <footer style="padding: 24px; text-align: center; border-top: 1px solid var(--color-steel-outline); color: var(--color-muted-fog); font-size: 0.85rem; margin-top: auto;">
+    EventPass &copy; 2026 &bull; Plataforma Centralizada &bull; Todos los derechos reservados.
   </footer>
 
+  <script src="../js/config.js"></script>
+  <script src="../js/api-store.js"></script>
+  <script src="../js/app.js"></script>
 </body>
 </html>

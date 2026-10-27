@@ -35,16 +35,34 @@ async function listarMisEventos(req, res, next) {
   try {
     const eventos = await Evento.find({ creador: req.adminId }).sort({ fecha: 1 });
 
-    // Adjunta un conteo rápido de asistentes/check-ins a cada evento (para la vista "Mis eventos")
-    const eventosConConteo = await Promise.all(
-      eventos.map(async (evento) => {
-        const [registrados, confirmados] = await Promise.all([
-          Asistente.countDocuments({ evento: evento._id }),
-          Asistente.countDocuments({ evento: evento._id, estadoCheckin: true })
-        ]);
-        return { ...evento.toJSON(), registrados, confirmados };
-      })
-    );
+    if (!eventos.length) {
+      return res.json({ eventos: [] });
+    }
+
+    const eventoIds = eventos.map(e => e._id);
+    const conteos = await Asistente.aggregate([
+      { $match: { evento: { $in: eventoIds } } },
+      {
+        $group: {
+          _id: '$evento',
+          registrados: { $sum: 1 },
+          confirmados: { $sum: { $cond: ['$estadoCheckin', 1, 0] } }
+        }
+      }
+    ]);
+
+    const mapaConteos = new Map();
+    conteos.forEach(c => {
+      mapaConteos.set(String(c._id), {
+        registrados: c.registrados || 0,
+        confirmados: c.confirmados || 0
+      });
+    });
+
+    const eventosConConteo = eventos.map(evento => {
+      const stats = mapaConteos.get(String(evento._id)) || { registrados: 0, confirmados: 0 };
+      return { ...evento.toJSON(), ...stats };
+    });
 
     res.json({ eventos: eventosConConteo });
   } catch (error) {

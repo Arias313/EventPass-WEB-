@@ -1,7 +1,10 @@
 (function() {
   const C = window.EP_CONFIG || {};
   const STORAGE_KEY = C.STORAGE_KEY || "eventpass_db_v1";
-  const API_BASE = String(C.API_BASE || "http://localhost:4000/api").replace(/\/$/, "");
+  const getApiBase = () => {
+    const fromConfig = (window.EP_CONFIG && window.EP_CONFIG.API_BASE) || C.API_BASE;
+    return String(fromConfig || "").replace(/\/+$/, "");
+  };
   const CHANNEL_NAME = C.CHANNEL || "eventpass_live";
 
   const bc = ("BroadcastChannel" in window) ? new BroadcastChannel(CHANNEL_NAME) : null;
@@ -45,7 +48,8 @@
 
   // Helper HTTP para la API
   const request = async (endpoint, options = {}) => {
-    const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
+    const apiBase = getApiBase();
+    const url = endpoint.startsWith("http") ? endpoint : `${apiBase}${endpoint}`;
     const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
     const isAuthRequest = endpoint.startsWith("/auth/login") || endpoint.startsWith("/auth/registro");
     const token = isAuthRequest ? "" : getToken();
@@ -66,6 +70,9 @@
       }
     } catch (cause) {
       const timedOut = controller.signal.aborted || (cause && cause.name === "AbortError");
+      if (apiBase.includes("localhost") && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+        console.warn(`[EPStore] Fallo al contactar API local (${apiBase}) desde un host público (${window.location.hostname}). Configura EVENTPASS_API_BASE.`);
+      }
       const err = new Error(timedOut
         ? "La solicitud tardó demasiado. Comprueba tu conexión e inténtalo de nuevo."
         : "No se pudo conectar con el servidor. Comprueba tu conexión.");
@@ -130,7 +137,8 @@
       fechaRegistro,
       ts: Number.isFinite(parsedDate) ? parsedDate : 0,
       estadoCheckin: Boolean(a.estadoCheckin ?? a.checkin),
-      checkin: Boolean(a.estadoCheckin ?? a.checkin)
+      checkin: Boolean(a.estadoCheckin ?? a.checkin),
+      fechaCheckin: a.fechaCheckin || null
     };
   };
 
@@ -390,6 +398,42 @@
       subs.add(f);
       return () => subs.delete(f);
     },
+
+    // ─── Verificación de Salud del Servidor ─────────────────────
+    health: async () => {
+      return await request("/health");
+    },
+
+    // ─── Check-in Individual y Sincronización Móvil ─────────────
+    checkin: async (eventoId, qrCode) => {
+      const data = await request(`/eventos/${encodeURIComponent(eventoId)}/checkin`, {
+        method: "POST",
+        body: JSON.stringify({ qrCode })
+      });
+      if (data && (data.status === "ok" || data.status === "ya_registrado") && data.asistente) {
+        const norm = normalizarAsistente(data.asistente);
+        const idx = state.asistentes.findIndex(a => a.id === norm.id || (norm.pin && a.pin === norm.pin));
+        if (idx >= 0) state.asistentes[idx] = norm;
+        if (data.status === "ok") {
+          const ev = state.eventos.find(e => e.id === eventoId || e._id === eventoId);
+          if (ev) ev.confirmados = (ev.confirmados || 0) + 1;
+        }
+        writeLocal(state);
+      }
+      return data;
+    },
+
+    syncCheckins: async (checkins) => {
+      const data = await request("/checkin/sync", {
+        method: "POST",
+        body: JSON.stringify({ checkins })
+      });
+      return data;
+    },
+
+    // Exponer cliente de peticiones y base de API para vistas y diagnóstico
+    request,
+    getApiBase,
 
     // El pase QR usa exclusivamente el PIN generado y validado por el backend.
     qrPayload: (a) => (a && a.pin) || ""
