@@ -86,26 +86,50 @@ async function loginGoogle(req, res, next) {
       return res.status(400).json({ error: 'Falta el token de Google (idToken).' });
     }
 
+    // Sin Client ID no se puede validar la audiencia: se aceptarían tokens emitidos
+    // para cualquier otra app de Google. Se rechaza en lugar de verificar a medias.
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: clientId || undefined
-    });
+    if (!clientId) {
+      console.error('[Google Auth] GOOGLE_CLIENT_ID no está configurado; login con Google deshabilitado.');
+      return res.status(503).json({ error: 'El inicio de sesión con Google no está disponible en este momento.' });
+    }
 
-    const payload = ticket.getPayload();
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });
+      payload = ticket.getPayload();
+    } catch (errorVerificacion) {
+      console.error('[Google Auth Error]', errorVerificacion.message);
+      return res.status(401).json({ error: 'Token de Google inválido o expirado.' });
+    }
+
     if (!payload || !payload.email) {
       return res.status(400).json({ error: 'Token de Google no contiene un correo válido.' });
     }
 
+    // Solo se confía en correos verificados por Google: evita tomar cuentas
+    // existentes con un correo que el usuario de Google no controla.
+    if (payload.email_verified !== true) {
+      return res.status(403).json({ error: 'Tu correo de Google no está verificado.' });
+    }
+
     const email = payload.email.toLowerCase();
-    const nombre = payload.name || payload.given_name || email.split('@')[0];
-    const empresa = payload.hd ? `Organización ${payload.hd}` : '';
 
     // 1. Buscar si ya existe el organizador
     let admin = await Admin.findOne({ email });
 
-    // 2. Si no existe, crear la cuenta automáticamente con hash aleatorio seguro
+    // 2. Si no existe, crear la cuenta automáticamente con hash aleatorio seguro,
+    //    salvo que el registro de admins esté restringido por código de invitación.
     if (!admin) {
+      if (process.env.ADMIN_INVITE_CODE) {
+        return res.status(403).json({
+          error: 'El registro de organizadores requiere un código de invitación. ' +
+            'Crea tu cuenta con el formulario de registro; después podrás entrar con Google.'
+        });
+      }
+
+      const nombre = payload.name || payload.given_name || email.split('@')[0];
+      const empresa = payload.hd ? `Organización ${payload.hd}` : '';
       const passwordAleatorio = crypto.randomBytes(32).toString('hex');
       const passwordHash = await Admin.hashearPassword(passwordAleatorio);
       admin = await Admin.create({
@@ -120,8 +144,7 @@ async function loginGoogle(req, res, next) {
     const token = generarToken(admin._id);
     res.json({ token, admin: admin.toJSON() });
   } catch (error) {
-    console.error('[Google Auth Error]', error.message);
-    res.status(401).json({ error: 'Token de Google inválido o expirado.' });
+    next(error);
   }
 }
 

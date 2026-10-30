@@ -273,9 +273,17 @@
     },
 
     crearEvento: async ({ nombre, fecha, lugar, aforo }) => {
+      // El input datetime-local entrega "YYYY-MM-DDTHH:mm" sin zona horaria. Se interpreta
+      // aquí en la hora local del organizador y se envía en ISO UTC; si se enviara crudo,
+      // el servidor (UTC en Render) lo leería en su propia zona y desfasaría la hora.
+      const fechaLocal = fecha instanceof Date ? fecha : new Date(fecha);
+      if (!Number.isFinite(fechaLocal.getTime())) {
+        throw new Error("La fecha del evento no es válida.");
+      }
+
       const payload = {
         titulo: nombre,
-        fecha,
+        fecha: fechaLocal.toISOString(),
         lugar,
         aforoTotal: Math.max(1, Number(aforo) || 1)
       };
